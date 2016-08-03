@@ -18,6 +18,16 @@ namespace Microsoft.Xna.Framework.Net
 {
 	public class NetworkSessionJoinException : NetworkException
 	{
+		#region Public Properties
+
+		public NetworkSessionJoinError JoinError
+		{
+			get;
+			set;
+		}
+
+		#endregion
+
 		#region Public Constructors
 
 		public NetworkSessionJoinException() : base()
