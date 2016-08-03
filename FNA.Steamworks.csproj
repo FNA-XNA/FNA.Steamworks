@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">WindowsDebug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProjectGuid>{F5328B35-F276-4157-9B69-E06D527C689B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Microsoft.Xna.Framework.Net</RootNamespace>
+    <AssemblyName>FNA.Steamworks</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'WindowsDebug|x86' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\WindowsDebug</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'WindowsRelease|x86' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\WindowsRelease</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'UnixDebug|x86' ">
+    <Optimize>false</Optimize>
+    <OutputPath>bin\UnixDebug</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'UnixRelease|x86' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\UnixRelease</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Folder Include="src\" />
+    <Folder Include="src\GamerServices\" />
+    <Folder Include="src\Net\" />
+    <Folder Include="src\Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FNA\FNA.csproj">
+      <Project>{35253CE1-C864-4CD3-8249-4D1319748E8F}</Project>
+      <Name>FNA</Name>
+    </ProjectReference>
+    <ProjectReference Include="Steamworks.NET\Standalone\Steamworks.NET.csproj">
+      <Project>{B3543600-587C-4FDC-994A-CB0BDC629A7E}</Project>
+      <Name>Steamworks.NET</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="src\GamerServices\Achievement.cs" />
+    <Compile Include="src\GamerServices\AchievementCollection.cs" />
+    <Compile Include="src\GamerServices\FriendGamer.cs" />
+    <Compile Include="src\GamerServices\FriendCollection.cs" />
+    <Compile Include="src\GamerServices\Gamer.cs" />
+    <Compile Include="src\GamerServices\GamerCollection.cs" />
+    <Compile Include="src\GamerServices\GameDefaults.cs" />
+    <Compile Include="src\GamerServices\GamerPresence.cs" />
+    <Compile Include="src\GamerServices\GamerPrivilegeException.cs" />
+    <Compile Include="src\GamerServices\GamerPrivileges.cs" />
+    <Compile Include="src\GamerServices\GamerProfile.cs" />
+    <Compile Include="src\GamerServices\GamerServicesComponent.cs" />
+    <Compile Include="src\GamerServices\GamerServicesDispatcher.cs" />
+    <Compile Include="src\GamerServices\GamerServicesNotAvailableException.cs" />
+    <Compile Include="src\GamerServices\GameUpdateRequiredException.cs" />
+    <Compile Include="src\GamerServices\Guide.cs" />
+    <Compile Include="src\GamerServices\GuideAlreadyVisibleException.cs" />
+    <Compile Include="src\GamerServices\InviteAcceptedEventArgs.cs" />
+    <Compile Include="src\GamerServices\LeaderboardEntry.cs" />
+    <Compile Include="src\GamerServices\LeaderboardReader.cs" />
+    <Compile Include="src\GamerServices\LeaderboardWriter.cs" />
+    <Compile Include="src\GamerServices\NetworkException.cs" />
+    <Compile Include="src\GamerServices\NetworkNotAvailableException.cs" />
+    <Compile Include="src\GamerServices\PropertyDictionary.cs" />
+    <Compile Include="src\GamerServices\SignedInEventArgs.cs" />
+    <Compile Include="src\GamerServices\SignedInGamer.cs" />
+    <Compile Include="src\GamerServices\SignedInGamerCollection.cs" />
+    <Compile Include="src\GamerServices\SignedOutEventArgs.cs" />
+    <Compile Include="src\GamerServices\LeaderboardIdentity.cs" />
+    <Compile Include="src\GamerServices\ControllerSensitivity.cs" />
+    <Compile Include="src\GamerServices\GameDifficulty.cs" />
+    <Compile Include="src\GamerServices\GamerPresenceMode.cs" />
+    <Compile Include="src\GamerServices\GamerPrivilegeSetting.cs" />
+    <Compile Include="src\GamerServices\GamerZone.cs" />
+    <Compile Include="src\GamerServices\LeaderboardKey.cs" />
+    <Compile Include="src\GamerServices\LeaderboardOutcome.cs" />
+    <Compile Include="src\GamerServices\MessageBoxIcon.cs" />
+    <Compile Include="src\GamerServices\NotificationPosition.cs" />
+    <Compile Include="src\GamerServices\RacingCameraAngle.cs" />
+    <Compile Include="src\Net\AvailableNetworkSession.cs" />
+    <Compile Include="src\Net\AvailableNetworkSessionCollection.cs" />
+    <Compile Include="src\Net\GameEndedEventArgs.cs" />
+    <Compile Include="src\Net\GamerJoinedEventArgs.cs" />
+    <Compile Include="src\Net\GamerLeftEventArgs.cs" />
+    <Compile Include="src\Net\GameStartedEventArgs.cs" />
+    <Compile Include="src\Net\HostChangedEventArgs.cs" />
+    <Compile Include="src\Net\LocalNetworkGamer.cs" />
+    <Compile Include="src\Net\NetworkGamer.cs" />
+    <Compile Include="src\Net\NetworkMachine.cs" />
+    <Compile Include="src\Net\NetworkSession.cs" />
+    <Compile Include="src\Net\NetworkSessionEndedEventArgs.cs" />
+    <Compile Include="src\Net\NetworkSessionJoinException.cs" />
+    <Compile Include="src\Net\NetworkSessionProperties.cs" />
+    <Compile Include="src\Net\PacketReader.cs" />
+    <Compile Include="src\Net\PacketWriter.cs" />
+    <Compile Include="src\Net\QualityOfService.cs" />
+    <Compile Include="src\Net\WriteLeaderboardsEventArgs.cs" />
+    <Compile Include="src\Net\NetworkSessionEndReason.cs" />
+    <Compile Include="src\Net\NetworkSessionJoinError.cs" />
+    <Compile Include="src\Net\NetworkSessionState.cs" />
+    <Compile Include="src\Net\NetworkSessionType.cs" />
+    <Compile Include="src\Net\SendDataOptions.cs" />
+    <Compile Include="src\Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+</Project>

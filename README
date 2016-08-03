@@ -1,0 +1,27 @@
+This is FNA.Steamworks, a reimplementation of the Xbox Live features in XNA4.
+
+DEVELOPER NOTE
+--------------
+This project is incomplete! This project is not expected to release until the
+end of 2016, where it will then be officially released on the FNA website and
+the FNA-XNA GitHub organization. Unless you plan on porting an XBLA game and
+plan on doing it without any hacks, this repo is not for you!
+
+Project Website: http://fna-xna.github.io/
+
+License
+-------
+FNA.Steamworks is released under the Microsoft Public License. See LICENSE for
+details.
+
+Documentation
+-------------
+Documentation for FNA.Steamworks can be found on the FNA wiki:
+
+--WIP--
+
+Found an issue?
+---------------
+Issues and patches can be reported via GitHub:
+
+https://github.com/flibitijibibo/FNA.Steamworks/issues
