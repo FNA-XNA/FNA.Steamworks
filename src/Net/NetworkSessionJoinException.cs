@@ -40,6 +40,13 @@ namespace Microsoft.Xna.Framework.Net
 
 		public NetworkSessionJoinException(
 			string message,
+			NetworkSessionJoinError joinError
+		) : base(message) {
+			JoinError = joinError;
+		}
+
+		public NetworkSessionJoinException(
+			string message,
 			Exception innerException
 		) : base(message, innerException) {
 		}
