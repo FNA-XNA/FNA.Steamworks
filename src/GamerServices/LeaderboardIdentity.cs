@@ -29,7 +29,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#region Public Static Methods
 
-		public LeaderboardIdentity Create(LeaderboardKey key)
+		public static LeaderboardIdentity Create(LeaderboardKey key)
 		{
 			return new LeaderboardIdentity()
 			{
@@ -38,7 +38,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			};
 		}
 
-		public LeaderboardIdentity Create(LeaderboardKey key, int gameMode)
+		public static LeaderboardIdentity Create(LeaderboardKey key, int gameMode)
 		{
 			return new LeaderboardIdentity()
 			{

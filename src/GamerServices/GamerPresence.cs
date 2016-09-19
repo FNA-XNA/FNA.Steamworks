@@ -11,5 +11,20 @@ namespace Microsoft.Xna.Framework.GamerServices
 {
 	public sealed class GamerPresence
 	{
+		#region Public Properties
+
+		public GamerPresenceMode PresenceMode
+		{
+			get;
+			set;
+		}
+
+		public int PresenceValue
+		{
+			get;
+			set;
+		}
+
+		#endregion
 	}
 }

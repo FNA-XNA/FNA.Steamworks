@@ -15,6 +15,18 @@ namespace Microsoft.Xna.Framework.GamerServices
 {
 	public sealed class SignedInGamerCollection : GamerCollection<SignedInGamer>
 	{
+		#region Public Properties
+
+		public SignedInGamer this[PlayerIndex index]
+		{
+			get
+			{
+				return collection[(int) index];
+			}
+		}
+
+		#endregion
+
 		#region Internal Constructor
 
 		internal SignedInGamerCollection(List<SignedInGamer> collection) : base(collection)

@@ -11,5 +11,14 @@ namespace Microsoft.Xna.Framework.GamerServices
 {
 	public sealed class LeaderboardWriter
 	{
+		#region Public Methods
+
+		public LeaderboardEntry GetLeaderboard(LeaderboardIdentity leaderboardId)
+		{
+			// TODO: Actual stuff?! -flibit
+			return null;
+		}
+
+		#endregion
 	}
 }
