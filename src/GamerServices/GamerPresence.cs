@@ -26,5 +26,15 @@ namespace Microsoft.Xna.Framework.GamerServices
 		}
 
 		#endregion
+
+		#region Internal Constructor
+
+		internal GamerPresence()
+		{
+			PresenceMode = new GamerPresenceMode();
+			PresenceValue = 0;
+		}
+
+		#endregion
 	}
 }

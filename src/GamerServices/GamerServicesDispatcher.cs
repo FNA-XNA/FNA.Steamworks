@@ -9,6 +9,7 @@
 
 #region Using Statements
 using System;
+using System.Collections.Generic;
 
 using Steamworks;
 #endregion
@@ -42,36 +43,21 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#endregion
 
-		#region Internal Static Variables
-
-		internal static bool SteamAvailable;
-
-		#endregion
-
 		#region Public Static Methods
 
 		public static void Initialize(IServiceProvider serviceProvider)
 		{
-			try
-			{
-				SteamAvailable = SteamAPI.Init();
-				if (SteamAvailable)
-				{
-					AppDomain.CurrentDomain.ProcessExit += (o, e) => SteamAPI.Shutdown();
-				}
-			}
-			catch
-			{
-				SteamAvailable = false;
-			}
+			bool success = SteamAPI.Init();
+			AppDomain.CurrentDomain.ProcessExit += (o, e) => SteamAPI.Shutdown();
+
+			List<SignedInGamer> startGamers = new List<SignedInGamer>(1);
+			startGamers.Add(new SignedInGamer(success));
+			Gamer.SignedInGamers = new SignedInGamerCollection(startGamers);
 		}
 
 		public static void Update()
 		{
-			if (SteamAvailable)
-			{
-				SteamAPI.RunCallbacks();
-			}
+			SteamAPI.RunCallbacks();
 		}
 
 		#endregion

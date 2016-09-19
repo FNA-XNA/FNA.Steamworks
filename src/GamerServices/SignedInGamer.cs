@@ -71,6 +71,25 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#endregion
 
+		#region Internal Constructor
+
+		internal SignedInGamer(
+			bool isSignedInToLive = false,
+			bool isGuest = false,
+			PlayerIndex playerIndex = PlayerIndex.One
+		) {
+			IsGuest = isGuest;
+			IsSignedInToLive = isSignedInToLive;
+			PlayerIndex = playerIndex;
+
+			GameDefaults = new GameDefaults();
+			Presence = new GamerPresence();
+			Privileges = new GamerPrivileges();
+			PartySize = 1;
+		}
+
+		#endregion
+
 		#region Public Methods
 
 		public bool IsFriend(Gamer gamer)

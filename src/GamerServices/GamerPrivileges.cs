@@ -56,5 +56,20 @@ namespace Microsoft.Xna.Framework.GamerServices
 		}
 
 		#endregion
+
+		#region Internal Constructor
+
+		internal GamerPrivileges()
+		{
+			AllowCommunication = GamerPrivilegeSetting.Everyone;
+			AllowOnlineSessions = true;
+			AllowPremiumContent = true;
+			AllowProfileViewing = GamerPrivilegeSetting.Everyone;
+			AllowPurchaseContent = true;
+			AllowTradeContent = true;
+			AllowUserCreatedContent = GamerPrivilegeSetting.Everyone;
+		}
+
+		#endregion
 	}
 }
