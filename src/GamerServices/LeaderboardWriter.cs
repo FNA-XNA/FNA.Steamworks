@@ -15,8 +15,13 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public LeaderboardEntry GetLeaderboard(LeaderboardIdentity leaderboardId)
 		{
-			// TODO: Actual stuff?! -flibit
-			return null;
+			// FIXME: Do these other parameters even matter? -flibit
+			return new LeaderboardEntry(
+				null,
+				0,
+				0,
+				LeaderboardReader.Leaderboards[leaderboardId.Key]
+			);
 		}
 
 		#endregion

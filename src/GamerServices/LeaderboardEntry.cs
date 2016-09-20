@@ -7,6 +7,10 @@
  */
 #endregion
 
+#region Using Statements
+using Steamworks;
+#endregion
+
 namespace Microsoft.Xna.Framework.GamerServices
 {
 	public sealed class LeaderboardEntry
@@ -28,8 +32,51 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public long Rating
 		{
+			get
+			{
+				return rating;
+			}
+			set
+			{
+				rating = value;
+				SteamUserStats.UploadLeaderboardScore(
+					leaderboard,
+					ELeaderboardUploadScoreMethod.k_ELeaderboardUploadScoreMethodKeepBest,
+					(int) rating,
+					null,
+					0
+				);
+			}
+		}
+
+		public int RankingEXT
+		{
 			get;
-			set;
+			private set;
+		}
+
+		#endregion
+
+		#region Private Variables
+
+		private long rating;
+		private SteamLeaderboard_t leaderboard;
+
+		#endregion
+
+		#region Internal Constructor
+
+		internal LeaderboardEntry(
+			Gamer gamer,
+			long rating,
+			int ranking,
+			SteamLeaderboard_t leaderboard
+		) {
+			Gamer = gamer;
+			this.rating = rating;
+			this.leaderboard = leaderboard;
+
+			RankingEXT = ranking;
 		}
 
 		#endregion

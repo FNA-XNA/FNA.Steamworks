@@ -342,6 +342,11 @@ namespace Microsoft.Xna.Framework.GamerServices
 			// No-op until multiple users can sign in!
 		}
 
+		public static void ShowAchievementsEXT(PlayerIndex player)
+		{
+			SteamFriends.ActivateGameOverlay("Achievements");
+		}
+
 		#endregion
 
 		#region Internal Static Methods
