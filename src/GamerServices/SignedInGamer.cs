@@ -252,7 +252,11 @@ namespace Microsoft.Xna.Framework.GamerServices
 		{
 			if (stats.m_steamIDUser == steamID)
 			{
-				statReceiveAction.IsCompleted = true;
+				// FIXME: Initial stat acquisition...? -flibit
+				if (statReceiveAction != null)
+				{
+					statReceiveAction.IsCompleted = true;
+				}
 			}
 		}
 

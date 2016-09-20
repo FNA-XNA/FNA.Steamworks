@@ -62,6 +62,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 			overlayActivated = Callback<GameOverlayActivated_t>.Create(Guide.OnOverlayActivated);
 			textInputDismissed = Callback<GamepadTextInputDismissed_t>.Create(Guide.OnTextInputDismissed);
 
+			SteamUserStats.RequestCurrentStats();
+
 			List<SignedInGamer> startGamers = new List<SignedInGamer>(1);
 			startGamers.Add(new SignedInGamer(
 				SteamUser.GetSteamID(),
