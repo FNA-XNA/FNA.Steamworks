@@ -74,6 +74,15 @@ namespace Microsoft.Xna.Framework.GamerServices
 		internal GamerProfile()
 		{
 			IsDisposed = false;
+
+			// TODO: Everything below
+			GamerScore = 0;
+			GamerZone = GamerZone.Pro; // WUBWUBWUBWUBWUB
+			Motto = string.Empty;
+			Region = RegionInfo.CurrentRegion;
+			Reputation = 5.0f;
+			TitlesPlayed = 1;
+			TotalAchievements = 0;
 		}
 
 		#endregion

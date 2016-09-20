@@ -31,6 +31,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		internal GamerPresence()
 		{
+			// TODO: Everything below
 			PresenceMode = new GamerPresenceMode();
 			PresenceValue = 0;
 		}

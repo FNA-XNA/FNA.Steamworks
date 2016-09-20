@@ -9,6 +9,9 @@
 
 #region Using Statements
 using System;
+using System.Collections.Generic;
+
+using Steamworks;
 
 using Microsoft.Xna.Framework.Audio;
 #endregion
@@ -64,6 +67,18 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#endregion
 
+		#region Private Variables
+
+#pragma warning disable 0414
+		private Callback<UserStatsStored_t> statsStored;
+		private Callback<UserStatsReceived_t> statsReceived;
+#pragma warning restore 0414
+
+		private GamerAction statStoreAction;
+		private GamerAction statReceiveAction;
+
+		#endregion
+
 		#region Public Events
 
 		public static event EventHandler<SignedInEventArgs> SignedIn;
@@ -74,14 +89,20 @@ namespace Microsoft.Xna.Framework.GamerServices
 		#region Internal Constructor
 
 		internal SignedInGamer(
+			CSteamID id,
+			string gamertag,
 			bool isSignedInToLive = false,
 			bool isGuest = false,
 			PlayerIndex playerIndex = PlayerIndex.One
-		) {
+		) : base(id, gamertag, gamertag) {
 			IsGuest = isGuest;
 			IsSignedInToLive = isSignedInToLive;
 			PlayerIndex = playerIndex;
 
+			statsStored = Callback<UserStatsStored_t>.Create(OnStatsStored);
+			statsReceived = Callback<UserStatsReceived_t>.Create(OnStatsReceived);
+
+			// TODO: Everything below
 			GameDefaults = new GameDefaults();
 			Presence = new GamerPresence();
 			Privileges = new GamerPrivileges();
@@ -94,8 +115,9 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public bool IsFriend(Gamer gamer)
 		{
-			// TODO: Actual stuff?! -flibit
-			return false;
+			EFriendRelationship efr = SteamFriends.GetFriendRelationship(gamer.steamID);
+			return (	efr == EFriendRelationship.k_EFriendRelationshipFriend ||
+					efr == EFriendRelationship.k_EFriendRelationshipIgnoredFriend	);
 		}
 
 		public bool IsHeadset(Microphone microphone)
@@ -106,15 +128,38 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public FriendCollection GetFriends()
 		{
-			// TODO: Actual stuff?! -flibit
-			return null;
+			EFriendFlags flags = (
+				EFriendFlags.k_EFriendFlagImmediate |
+				EFriendFlags.k_EFriendFlagRequestingFriendship |
+				EFriendFlags.k_EFriendFlagFriendshipRequested
+			);
+			int friendCount = SteamFriends.GetFriendCount(flags);
+			List<FriendGamer> friends = new List<FriendGamer>(friendCount);
+			for (int i = 0; i < friendCount; i += 1)
+			{
+				CSteamID id = SteamFriends.GetFriendByIndex(i, flags);
+				EFriendRelationship relationship = SteamFriends.GetFriendRelationship(id);
+				EPersonaState state = SteamFriends.GetFriendPersonaState(id);
+				FriendGameInfo_t whoCares;
+				friends.Add(new FriendGamer(
+					id,
+					SteamFriends.GetFriendPersonaName(id),
+					SteamFriends.GetPlayerNickname(id),
+					state != EPersonaState.k_EPersonaStateOffline,
+					SteamFriends.GetFriendGamePlayed(id, out whoCares),
+					state == EPersonaState.k_EPersonaStateAway,
+					state == EPersonaState.k_EPersonaStateBusy,
+					relationship == EFriendRelationship.k_EFriendRelationshipRequestRecipient,
+					relationship == EFriendRelationship.k_EFriendRelationshipRequestInitiator
+				));
+			}
+			return new FriendCollection(friends);
 		}
 
 		public void AwardAchievement(string achievementKey)
 		{
-			IAsyncResult result = BeginAwardAchievement(achievementKey, null, null);
-			result.AsyncWaitHandle.WaitOne();
-			EndAwardAchievement(result);
+			SteamUserStats.SetAchievement(achievementKey);
+			SteamUserStats.StoreStats();
 		}
 
 		public IAsyncResult BeginAwardAchievement(
@@ -122,19 +167,28 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object state
 		) {
-			// TODO: Actual stuff?! -flibit
-			return new GamerAction(state, callback);
+			if (statStoreAction != null)
+			{
+				throw new InvalidOperationException();
+			}
+			SteamUserStats.SetAchievement(achievementKey);
+			statStoreAction = new GamerAction(state, callback);
+			SteamUserStats.StoreStats();
+			return statStoreAction;
 		}
 
 		public void EndAwardAchievement(IAsyncResult result)
 		{
-			// TODO: Actual stuff?! -flibit
+			statStoreAction = null;
 		}
 
 		public AchievementCollection GetAchievements()
 		{
 			IAsyncResult result = BeginGetAchievements(null, null);
-			result.AsyncWaitHandle.WaitOne();
+			while (!result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndGetAchievements(result);
 		}
 
@@ -142,15 +196,84 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			// TODO: Actual stuff?! -flibit
-			return new GamerAction(asyncState, callback);
+			if (statReceiveAction != null)
+			{
+				throw new InvalidOperationException();
+			}
+			statReceiveAction = new GamerAction(asyncState, callback);
+			SteamUserStats.RequestUserStats(steamID);
+			return statReceiveAction;
 		}
 
 		public AchievementCollection EndGetAchievements(IAsyncResult result)
 		{
+			uint numAch = SteamUserStats.GetNumAchievements();
+			List<Achievement> achievements = new List<Achievement>((int) numAch);
+			for (uint i = 0; i < numAch; i += 1)
+			{
+				string key = SteamUserStats.GetAchievementName(i);
+				string name = SteamUserStats.GetAchievementDisplayAttribute(key, "name");
+				string desc = SteamUserStats.GetAchievementDisplayAttribute(key, "desc");
+				string hide = SteamUserStats.GetAchievementDisplayAttribute(key, "hidden");
+				bool earned;
+				uint unlockTime;
+				SteamUserStats.GetUserAchievementAndUnlockTime(
+					steamID,
+					key,
+					out earned,
+					out unlockTime
+				);
+				DateTime unlockDT = new DateTime(1970, 1, 1, 0, 0, 0);
+				unlockDT.AddSeconds(unlockTime);
+				achievements.Add(new Achievement(
+					key,
+					name,
+					desc,
+					hide == "0",
+					earned,
+					unlockDT
+				));
+			}
+			statReceiveAction = null;
+			return new AchievementCollection(achievements);
+		}
 
-			// TODO: Actual stuff?! -flibit
-			return null;
+		#endregion
+
+		#region Private Methods
+
+		private void OnStatsStored(UserStatsStored_t stats)
+		{
+			// FIXME: Pray that we don't get overlap -flibit
+			statStoreAction.IsCompleted = true;
+		}
+
+		private void OnStatsReceived(UserStatsReceived_t stats)
+		{
+			if (stats.m_steamIDUser == steamID)
+			{
+				statReceiveAction.IsCompleted = true;
+			}
+		}
+
+		#endregion
+
+		#region Internal Static Methods
+
+		internal static void OnSignIn(SignedInGamer gamer)
+		{
+			if (SignedIn != null)
+			{
+				SignedIn(null, new SignedInEventArgs(gamer));
+			}
+		}
+
+		internal static void OnSignOut(SignedInGamer gamer)
+		{
+			if (SignedOut != null)
+			{
+				SignedOut(null, new SignedOutEventArgs(gamer));
+			}
 		}
 
 		#endregion

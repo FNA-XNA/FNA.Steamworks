@@ -10,6 +10,8 @@
 #region Using Statements
 using System;
 using System.Threading;
+
+using Steamworks;
 #endregion
 
 namespace Microsoft.Xna.Framework.GamerServices
@@ -56,6 +58,12 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#endregion
 
+		#region Internal Variables
+
+		internal readonly CSteamID steamID;
+
+		#endregion
+
 		#region Async Object Type
 
 		internal class GamerAction : IAsyncResult
@@ -99,6 +107,23 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#endregion
 
+		#region Internal Constructor
+
+		internal Gamer(
+			CSteamID id,
+			string gamertag,
+			string displayName = null
+		) {
+			steamID = id;
+			Gamertag = gamertag;
+			DisplayName = displayName ?? gamertag;
+
+			// TODO: Everything below
+			LeaderboardWriter = new LeaderboardWriter();
+		}
+
+		#endregion
+
 		#region Public Methods
 
 		public GamerProfile GetProfile()
@@ -112,14 +137,15 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			// TODO: Actual stuff?!
-			return new GamerAction(asyncState, callback);
+			return new GamerAction(asyncState, callback)
+			{
+				IsCompleted = true
+			};
 		}
 
 		public GamerProfile EndGetProfile(IAsyncResult result)
 		{
-			// TODO: Actual stuff?!
-			return null;
+			return new GamerProfile();
 		}
 
 		#endregion
@@ -128,9 +154,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public static Gamer GetFromGamertag(string gamertag)
 		{
-			IAsyncResult result = BeginGetFromGamertag(gamertag, null, null);
-			result.AsyncWaitHandle.WaitOne();
-			return EndGetFromGamertag(result);
+			throw new NotSupportedException();
 		}
 
 		public static IAsyncResult BeginGetFromGamertag(
@@ -138,21 +162,17 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			// TODO: Actual stuff?!
-			return new GamerAction(asyncState, callback);
+			throw new NotSupportedException();
 		}
 
 		public static Gamer EndGetFromGamertag(IAsyncResult result)
 		{
-			// TODO: Actual stuff?!
-			return null;
+			throw new NotSupportedException();
 		}
 
 		public static string GetPartnerToken(string audienceUri)
 		{
-			IAsyncResult result = BeginGetPartnerToken(audienceUri, null, null);
-			result.AsyncWaitHandle.WaitOne();
-			return EndGetPartnerToken(result);
+			throw new NotSupportedException();
 		}
 
 		public static IAsyncResult BeginGetPartnerToken(
@@ -160,14 +180,12 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			// TODO: Actual stuff?!
-			return new GamerAction(asyncState, callback);
+			throw new NotSupportedException();
 		}
 
 		public static string EndGetPartnerToken(IAsyncResult result)
 		{
-			// TODO: Actual stuff?!
-			return string.Empty;
+			throw new NotSupportedException();
 		}
 
 		#endregion

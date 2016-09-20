@@ -92,5 +92,37 @@ namespace Microsoft.Xna.Framework.GamerServices
 		}
 
 		#endregion
+
+		#region Internal Constructor
+
+		internal FriendGamer(
+			Steamworks.CSteamID id,
+			string gamertag,
+			string displayName,
+			bool online,
+			bool playing,
+			bool away,
+			bool busy,
+			bool requestingFriend,
+			bool friendRequesting
+		) : base(id, gamertag, displayName) {
+			IsOnline = online;
+			IsPlaying = playing;
+			IsAway = away;
+			IsBusy = busy;
+			FriendRequestSentTo = requestingFriend;
+			FriendRequestReceivedFrom = friendRequesting;
+
+			// TODO: Everything below
+			IsJoinable = false;
+			InviteAccepted = false;
+			InviteReceivedFrom = false;
+			InviteRejected = false;
+			InviteSentTo = false;
+			HasVoice = false;
+			Presence = string.Empty;
+		}
+
+		#endregion
 	}
 }

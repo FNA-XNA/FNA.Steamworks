@@ -61,6 +61,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		internal GamerPrivileges()
 		{
+			// TODO: Everything below -flibit
 			AllowCommunication = GamerPrivilegeSetting.Everyone;
 			AllowOnlineSessions = true;
 			AllowPremiumContent = true;

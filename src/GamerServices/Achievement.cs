@@ -10,6 +10,8 @@
 #region Using Statements
 using System;
 using System.IO;
+
+using Steamworks;
 #endregion
 
 namespace Microsoft.Xna.Framework.GamerServices
@@ -74,11 +76,41 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#endregion
 
+		#region Internal Constructor
+
+		internal Achievement(
+			string key,
+			string name,
+			string description,
+			bool showBeforeEarned,
+			bool earned,
+			DateTime earnedDateTime
+		) {
+			Key = key;
+			Name = name;
+			Description = description;
+			DisplayBeforeEarned = showBeforeEarned;
+			IsEarned = earned;
+			EarnedDateTime = earnedDateTime;
+
+			// TODO: Everything below
+			EarnedOnline = true;
+			GamerScore = 0;
+			HowToEarn = string.Empty;
+		}
+
+		#endregion
+
 		#region Public Methods
 
 		public Stream GetPicture()
 		{
-			return null;
+			int img = SteamUserStats.GetAchievementIcon(Key);
+			uint w, h;
+			SteamUtils.GetImageSize(img, out w, out h);
+			byte[] imgData = new byte[w * h * 4];
+			SteamUtils.GetImageRGBA(img, imgData, imgData.Length);
+			return new MemoryStream(imgData); // FIXME: Leak! -flibit
 		}
 
 		#endregion

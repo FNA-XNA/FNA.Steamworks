@@ -35,10 +35,12 @@ namespace Microsoft.Xna.Framework.Net
 
 		public void EnableSendVoice(NetworkGamer remoteGamer, bool enable)
 		{
+			// TODO: Actual stuff?! -flibit
 		}
 
 		public void SendPartyInvites()
 		{
+			// TODO: Actual stuff?! -flibit
 		}
 
 		public int ReceiveData(byte[] data, out NetworkGamer gamer)
@@ -48,12 +50,14 @@ namespace Microsoft.Xna.Framework.Net
 
 		public int ReceiveData(byte[] data, int offset, out NetworkGamer sender)
 		{
+			// TODO: Actual stuff?! -flibit
 			sender = null;
 			return 0;
 		}
 
 		public int ReceiveData(PacketReader data, out NetworkGamer sender)
 		{
+			// TODO: Actual stuff?! -flibit
 			sender = null;
 			return 0;
 		}
@@ -95,9 +99,17 @@ namespace Microsoft.Xna.Framework.Net
 
 		public void SendData(PacketWriter data, SendDataOptions options)
 		{
+			// FIXME: Do we want to alloc like this? -flibit
+			byte[] mem = (data.BaseStream as System.IO.MemoryStream).ToArray();
 			foreach (NetworkGamer gamer in Session.AllGamers)
 			{
-				SendData(data, options, gamer);
+				SendData(
+					mem,
+					0,
+					mem.Length,
+					options,
+					gamer
+				);
 			}
 		}
 
@@ -106,7 +118,15 @@ namespace Microsoft.Xna.Framework.Net
 			SendDataOptions options,
 			NetworkGamer recipient
 		) {
-			// TODO: Actual stuff?! -flibit
+			// FIXME: Do we want to alloc like this? -flibit
+			byte[] mem = (data.BaseStream as System.IO.MemoryStream).ToArray();
+			SendData(
+				mem,
+				0,
+				mem.Length,
+				options,
+				recipient
+			);
 		}
 
 		#endregion

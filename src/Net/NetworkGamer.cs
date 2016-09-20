@@ -101,5 +101,13 @@ namespace Microsoft.Xna.Framework.Net
 		}
 
 		#endregion
+
+		#region Internal Constructor
+
+		internal NetworkGamer() : base(new Steamworks.CSteamID(), null, null)
+		{
+		}
+
+		#endregion
 	}
 }

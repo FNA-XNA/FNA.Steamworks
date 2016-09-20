@@ -34,6 +34,15 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#endregion
 
+		#region Private Static Variables
+
+#pragma warning disable 0414
+		private static Callback<GameOverlayActivated_t> overlayActivated;
+		private static Callback<GamepadTextInputDismissed_t> textInputDismissed;
+#pragma warning restore 0414
+
+		#endregion
+
 		#region Public Static Events
 
 #pragma warning disable 0067
@@ -50,14 +59,28 @@ namespace Microsoft.Xna.Framework.GamerServices
 			bool success = SteamAPI.Init();
 			AppDomain.CurrentDomain.ProcessExit += (o, e) => SteamAPI.Shutdown();
 
+			overlayActivated = Callback<GameOverlayActivated_t>.Create(Guide.OnOverlayActivated);
+			textInputDismissed = Callback<GamepadTextInputDismissed_t>.Create(Guide.OnTextInputDismissed);
+
 			List<SignedInGamer> startGamers = new List<SignedInGamer>(1);
-			startGamers.Add(new SignedInGamer(success));
+			startGamers.Add(new SignedInGamer(
+				SteamUser.GetSteamID(),
+				SteamFriends.GetPersonaName(),
+				success
+			));
+			// TODO: Initial guests!
 			Gamer.SignedInGamers = new SignedInGamerCollection(startGamers);
+			foreach (SignedInGamer gamer in Gamer.SignedInGamers)
+			{
+				SignedInGamer.OnSignIn(gamer);
+			}
 		}
 
 		public static void Update()
 		{
 			SteamAPI.RunCallbacks();
+
+			// TODO: Guest hotplugging!
 		}
 
 		#endregion

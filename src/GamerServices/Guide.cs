@@ -10,6 +10,9 @@
 #region Using Statements
 using System;
 using System.Collections.Generic;
+using System.Threading;
+
+using Steamworks;
 #endregion
 
 namespace Microsoft.Xna.Framework.GamerServices
@@ -20,9 +23,22 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public static bool IsScreenSaverEnabled
 		{
-			// TODO: SDL directly? -flibit
-			get;
-			set;
+			// FIXME: Should we use SDL here? -flibit
+			get
+			{
+				return SDL2.SDL.SDL_IsScreenSaverEnabled() == SDL2.SDL.SDL_bool.SDL_TRUE;
+			}
+			set
+			{
+				if (value)
+				{
+					SDL2.SDL.SDL_EnableScreenSaver();
+				}
+				else
+				{
+					SDL2.SDL.SDL_DisableScreenSaver();
+				}
+			}
 		}
 
 		public static bool IsTrialMode
@@ -33,20 +49,124 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public static bool IsVisible
 		{
-			get;
-			set;
+			get
+			{
+				return overlayActive;
+			}
+			set
+			{
+				if (value)
+				{
+					SteamFriends.ActivateGameOverlay(null);
+				}
+				else
+				{
+					// FIXME: No mechanism to close overlay -flibit
+				}
+			}
 		}
 
 		public static NotificationPosition NotificationPosition
 		{
-			get;
-			set;
+			get
+			{
+				return position;
+			}
+			set
+			{
+				if (value != position)
+				{
+					position = value;
+					SteamUtils.SetOverlayNotificationPosition(
+						positions[(int) position]
+					);
+				}
+			}
 		}
 
 		public static bool SimulateTrialMode
 		{
 			get;
 			set;
+		}
+
+		#endregion
+
+		#region Private Static Variables
+
+		private static bool overlayActive = false;
+		private static NotificationPosition position = NotificationPosition.BottomRight;
+
+		private static readonly ENotificationPosition[] positions = new ENotificationPosition[]
+		{
+			ENotificationPosition.k_EPositionBottomRight, // FIXME
+			ENotificationPosition.k_EPositionBottomLeft,
+			ENotificationPosition.k_EPositionBottomRight,
+			ENotificationPosition.k_EPositionBottomRight, // FIXME
+			ENotificationPosition.k_EPositionBottomLeft, // FIXME
+			ENotificationPosition.k_EPositionBottomRight, // FIXME
+			ENotificationPosition.k_EPositionTopRight, // FIXME
+			ENotificationPosition.k_EPositionTopLeft,
+			ENotificationPosition.k_EPositionTopRight
+		};
+
+		private static KeyboardAction keyboardAction;
+
+		#endregion
+
+		#region Async Object Types
+
+		private class KeyboardAction : IAsyncResult
+		{
+			public object AsyncState
+			{
+				get;
+				private set;
+			}
+
+			public bool CompletedSynchronously
+			{
+				get
+				{
+					return false;
+				}
+			}
+
+			public bool IsCompleted
+			{
+				get;
+				internal set;
+			}
+
+			public WaitHandle AsyncWaitHandle
+			{
+				get;
+				private set;
+			}
+
+			public readonly AsyncCallback Callback;
+
+			public string TextInput;
+
+			public KeyboardAction(object state, AsyncCallback callback, string textInput)
+			{
+				TextInput = textInput;
+
+				AsyncState = state;
+				Callback = callback;
+				IsCompleted = false;
+				AsyncWaitHandle = new ManualResetEvent(true);
+			}
+		}
+
+		#endregion
+
+		#region Static Constructor
+
+		static Guide()
+		{
+			IsTrialMode = false;
+			SimulateTrialMode = false;
 		}
 
 		#endregion
@@ -81,14 +201,24 @@ namespace Microsoft.Xna.Framework.GamerServices
 			object state,
 			bool usePasswordMode
 		) {
-			// TODO: Actual stuff?! -flibit
-			return null;
+			SteamUtils.ShowGamepadTextInput(
+				usePasswordMode ?
+					EGamepadTextInputMode.k_EGamepadTextInputModePassword :
+					EGamepadTextInputMode.k_EGamepadTextInputModeNormal,
+				EGamepadTextInputLineMode.k_EGamepadTextInputLineModeSingleLine,
+				title + ": " + description,
+				4096, // FIXME
+				defaultText
+			);
+			keyboardAction = new KeyboardAction(state, callback, defaultText);
+			return keyboardAction;
 		}
 
 		public static string EndShowKeyboardInput(IAsyncResult result)
 		{
-			// TODO: Actual stuff?! -flibit
-			return string.Empty;
+			string text = keyboardAction.TextInput;
+			keyboardAction = null;
+			return text;
 		}
 
 		public static IAsyncResult BeginShowMessageBox(
@@ -100,8 +230,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object state
 		) {
-			// TODO: SDL directly? -flibit
-			return null;
+			// FIXME: Surely they don't want us doing this... -flibit
+			throw new NotSupportedException();
 		}
 
 		public static IAsyncResult BeginShowMessageBox(
@@ -114,14 +244,14 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object state
 		) {
-			// TODO: SDL directly? -flibit
-			return null;
+			// FIXME: Surely they don't want us doing this... -flibit
+			throw new NotSupportedException();
 		}
 
 		public static int? EndShowMessageBox(IAsyncResult result)
 		{
-			// TODO: Actual stuff?! -flibit
-			return null;
+			// FIXME: Surely they don't want us doing this... -flibit
+			throw new NotSupportedException();
 		}
 
 		public static void DelayNotifications(TimeSpan delay)
@@ -134,69 +264,102 @@ namespace Microsoft.Xna.Framework.GamerServices
 			string text,
 			IEnumerable<Gamer> recipients
 		) {
-			// TODO: Actual stuff?! -flibit
+			// FIXME: Could be a lobby, could be one recipient? -flibit
+			throw new NotSupportedException();
 		}
 
 		public static void ShowFriendRequest(PlayerIndex player, Gamer gamer)
 		{
-			// TODO: Actual stuff?! -flibit
+			SteamFriends.ActivateGameOverlayToUser(
+				"friendadd",
+				gamer.steamID
+			);
 		}
 
 		public static void ShowFriends(PlayerIndex player)
 		{
-			// TODO: Actual stuff?! -flibit
+			SteamFriends.ActivateGameOverlay("Friends");
 		}
 
 		public static void ShowGameInvite(
 			PlayerIndex player,
 			IEnumerable<Gamer> recipients
 		) {
-			// TODO: Actual stuff?! -flibit
+			// FIXME: Could be a lobby, could be one recipient? -flibit
+			throw new NotSupportedException();
 		}
 
 		public static void ShowGameInvite(string sessionId)
 		{
-			// TODO: Actual stuff?! -flibit
+			// TODO: SteamFriends.ActivateGameOverlayInviteDialog();
+			throw new NotSupportedException();
 		}
 
 		public static void ShowGamerCard(PlayerIndex player, Gamer gamer)
 		{
-			// TODO: Actual stuff?! -flibit
+			SteamFriends.ActivateGameOverlayToUser("steamid", gamer.steamID);
 		}
 
 		public static void ShowMarketPlace(PlayerIndex player)
 		{
-			// TODO: Actual stuff?! -flibit
+			SteamFriends.ActivateGameOverlayToStore(
+				SteamUtils.GetAppID(),
+				EOverlayToStoreFlag.k_EOverlayToStoreFlag_None
+			);
 		}
 
 		public static void ShowMessages(PlayerIndex player)
 		{
-			// TODO: Actual stuff?! -flibit
+			// If a message is pending then it'll just be there? -flibit
+			SteamFriends.ActivateGameOverlay(null);
 		}
 
 		public static void ShowParty(PlayerIndex player)
 		{
-			// TODO: Actual stuff?! -flibit
+			// FIXME: Lobbies? -flibit
+			throw new NotSupportedException();
 		}
 
 		public static void ShowPartySessions(PlayerIndex player)
 		{
-			// TODO: Actual stuff?! -flibit
+			// FIXME: Lobbies? -flibit
+			throw new NotSupportedException();
 		}
 
 		public static void ShowPlayerReview(PlayerIndex player, Gamer gamer)
 		{
-			// TODO: Actual stuff?! -flibit
+			// Comments/Rating are on the user profile
+			SteamFriends.ActivateGameOverlayToUser("steamid", gamer.steamID);
 		}
 
 		public static void ShowPlayers(PlayerIndex player)
 		{
-			// TODO: Actual stuff?! -flibit
+			SteamFriends.ActivateGameOverlay("Players");
 		}
 
 		public static void ShowSignIn(int paneCount, bool onlineOnly)
 		{
-			// TODO: Actual stuff?! -flibit
+			// No-op until multiple users can sign in!
+		}
+
+		#endregion
+
+		#region Internal Static Methods
+
+		internal static void OnOverlayActivated(GameOverlayActivated_t active)
+		{
+			overlayActive = active.m_bActive > 0;
+		}
+
+		internal static void OnTextInputDismissed(GamepadTextInputDismissed_t text)
+		{
+			if (text.m_bSubmitted)
+			{
+				SteamUtils.GetEnteredGamepadTextInput(
+					out keyboardAction.TextInput,
+					4096 // FIXME
+				);
+			}
 		}
 
 		#endregion
