@@ -319,7 +319,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			object asyncState
 		) {
 			FindLeaderboard(leaderboardId.Key);
-			return new LeaderboardReaderAction(
+			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
 				leaderboardId,
@@ -328,6 +328,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 				null,
 				null
 			);
+			return readAction;
 		}
 
 		public static IAsyncResult BeginRead(
@@ -338,7 +339,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			object asyncState
 		) {
 			FindLeaderboard(leaderboardId.Key);
-			return new LeaderboardReaderAction(
+			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
 				leaderboardId,
@@ -347,6 +348,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 				pivotGamer,
 				null
 			);
+			return readAction;
 		}
 
 		public static IAsyncResult BeginRead(
@@ -358,7 +360,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			object asyncState
 		) {
 			FindLeaderboard(leaderboardId.Key);
-			return new LeaderboardReaderAction(
+			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
 				leaderboardId,
@@ -367,6 +369,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 				pivotGamer,
 				gamers
 			);
+			return readAction;
 		}
 
 		public static LeaderboardReader EndRead(IAsyncResult result)
