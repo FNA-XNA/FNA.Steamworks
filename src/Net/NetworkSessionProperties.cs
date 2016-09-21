@@ -34,7 +34,15 @@ namespace Microsoft.Xna.Framework.Net
 			}
 			set
 			{
-				properties[index] = value;
+				if (index >= properties.Count)
+				{
+					// TODO: Expand list to index size? -flibit
+					properties.Add(value);
+				}
+				else
+				{
+					properties[index] = value;
+				}
 			}
 		}
 

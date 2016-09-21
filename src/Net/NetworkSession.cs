@@ -382,7 +382,6 @@ namespace Microsoft.Xna.Framework.Net
 			CSteamID lobby,
 			NetworkSessionProperties properties,
 			NetworkSessionType type,
-			bool isHost,
 			int maxGamers,
 			int privateGamerSlots,
 			int maxLocal,
@@ -515,16 +514,6 @@ namespace Microsoft.Xna.Framework.Net
 			// TODO: CloseP2PSessionWithUser -flibit
 
 			SteamMatchmaking.LeaveLobby(lobby);
-			SessionState = NetworkSessionState.Ended;
-			if (SessionEnded != null)
-			{
-				SessionEnded(
-					this,
-					new NetworkSessionEndedEventArgs(
-						NetworkSessionEndReason.HostEndedSession // FIXME
-					)
-				);
-			}
 
 			activeSession = null;
 			IsDisposed = true;
@@ -916,7 +905,6 @@ namespace Microsoft.Xna.Framework.Net
 				activeAction.Lobby,
 				activeAction.SessionProperties,
 				activeAction.SessionType,
-				true,
 				SteamMatchmaking.GetLobbyMemberLimit(activeAction.Lobby),
 				activeAction.MaxPrivateSlots,
 				activeAction.MaxLocalGamers,
@@ -1151,7 +1139,6 @@ namespace Microsoft.Xna.Framework.Net
 				activeAction.Lobby,
 				null, // FIXME
 				NetworkSessionType.PlayerMatch, // FIXME
-				false,
 				MaxSupportedGamers, // FIXME
 				0, // FIXME
 				0, // FIXME
@@ -1298,7 +1285,6 @@ namespace Microsoft.Xna.Framework.Net
 				activeAction.Lobby,
 				null, // FIXME
 				NetworkSessionType.PlayerMatch, // FIXME
-				false,
 				MaxSupportedGamers, // FIXME
 				0, // FIXME
 				activeAction.MaxLocalGamers,
