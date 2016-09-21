@@ -8,6 +8,8 @@
 #endregion
 
 #region Using Statements
+using Steamworks;
+
 using Microsoft.Xna.Framework.GamerServices;
 #endregion
 
@@ -19,14 +21,31 @@ namespace Microsoft.Xna.Framework.Net
 
 		public bool IsDataAvailable
 		{
-			get;
-			private set;
+			get
+			{
+				uint data;
+				return SteamNetworking.IsP2PPacketAvailable(out data);
+			}
 		}
 
 		public SignedInGamer SignedInGamer
 		{
 			get;
 			private set;
+		}
+
+		#endregion
+
+		#region Internal Constructor
+
+		internal LocalNetworkGamer(
+			SignedInGamer gamer,
+			NetworkSession session
+		) : base(
+			gamer.steamID,
+			session
+		) {
+			SignedInGamer = gamer;
 		}
 
 		#endregion
@@ -50,16 +69,70 @@ namespace Microsoft.Xna.Framework.Net
 
 		public int ReceiveData(byte[] data, int offset, out NetworkGamer sender)
 		{
-			// TODO: Actual stuff?! -flibit
+			uint len = 0;
 			sender = null;
-			return 0;
+
+			if (!SteamNetworking.IsP2PPacketAvailable(out len))
+			{
+				return (int) len;
+			}
+
+			CSteamID id;
+			SteamNetworking.ReadP2PPacket(
+				data, // FIXME: offset! -flibit
+				(uint) data.Length,
+				out len,
+				out id
+			);
+
+			foreach (NetworkGamer gamer in Session.AllGamers)
+			{
+				if (gamer.steamID == id)
+				{
+					sender = gamer;
+					return (int) len;
+				}
+			}
+
+			// We should never get here!
+			return (int) len;
 		}
 
 		public int ReceiveData(PacketReader data, out NetworkGamer sender)
 		{
-			// TODO: Actual stuff?! -flibit
+			uint len = 0;
 			sender = null;
-			return 0;
+
+			if (!SteamNetworking.IsP2PPacketAvailable(out len))
+			{
+				return (int) len;
+			}
+
+			// FIXME: Do we want to alloc like this? -flibit
+			byte[] buf = new byte[len];
+
+			CSteamID id;
+			SteamNetworking.ReadP2PPacket(
+				buf,
+				(uint) buf.Length,
+				out len,
+				out id
+			);
+
+			data.BaseStream.Write(buf, 0, (int) len);
+			data.BaseStream.Seek(-len, System.IO.SeekOrigin.Current);
+
+			foreach (NetworkGamer gamer in Session.AllGamers)
+			{
+				if (gamer.steamID == id)
+				{
+					sender = gamer;
+					return (int) len;
+				}
+			}
+
+			// We should never get here!
+			return (int) len;
 		}
 
 		public void SendData(byte[] data, SendDataOptions options)
@@ -94,7 +167,12 @@ namespace Microsoft.Xna.Framework.Net
 			SendDataOptions options,
 			NetworkGamer recipient
 		) {
-			// TODO: Actual stuff?! -flibit
+			SteamNetworking.SendP2PPacket(
+				recipient.steamID,
+				data,
+				(uint) data.Length,
+				EP2PSend.k_EP2PSendUnreliable // FIXME
+			);
 		}
 
 		public void SendData(PacketWriter data, SendDataOptions options)

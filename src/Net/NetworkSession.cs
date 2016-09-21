@@ -12,6 +12,8 @@ using System;
 using System.Threading;
 using System.Collections.Generic;
 
+using Steamworks;
+
 using Microsoft.Xna.Framework.GamerServices;
 #endregion
 
@@ -60,19 +62,68 @@ namespace Microsoft.Xna.Framework.Net
 
 		public bool AllowHostMigration
 		{
-			// InvalidOperationException: This session is not the host, and cannot change the value of AllowHostMigration.
-			// ObjectDisposedException: The session has been disposed.
-			get;
-			set;
+			get
+			{
+				if (lobby.m_SteamID == 0)
+				{
+					throw new ObjectDisposedException("this");
+				}
+				return SteamMatchmaking.GetLobbyData(
+					lobby,
+					"AllowHostMigration"
+				) == "1";
+			}
+			set
+			{
+				if (!IsHost)
+				{
+					throw new InvalidOperationException("You are not the host");
+				}
+				if (lobby.m_SteamID == 0)
+				{
+					throw new ObjectDisposedException("this");
+				}
+				SteamMatchmaking.SetLobbyData(
+					lobby,
+					"AllowHostMigration",
+					value ? "1" : "0"
+				);
+			}
 		}
 
 		public bool AllowJoinInProgress
 		{
-			// NotSupportedException: Join-in-progress is not supported for multiplayer sessions of type NetworkSessionType.Ranked.
-			// InvalidOperationException: This session is not the host, and cannot change the value of AllowJoinInProgress.
-			// ObjectDisposedException: The session has been disposed.
-			get;
-			set;
+			get
+			{
+				if (lobby.m_SteamID == 0)
+				{
+					throw new ObjectDisposedException("this");
+				}
+				return SteamMatchmaking.GetLobbyData(
+					lobby,
+					"AllowJoinInProgress"
+				) == "1";
+			}
+			set
+			{
+				if (SessionType == NetworkSessionType.Ranked)
+				{
+					throw new NotSupportedException("This match is Ranked");
+				}
+				if (!IsHost)
+				{
+					throw new InvalidOperationException("You are not the host");
+				}
+				if (lobby.m_SteamID == 0)
+				{
+					throw new ObjectDisposedException("this");
+				}
+				SteamMatchmaking.SetLobbyData(
+					lobby,
+					"AllowJoinInProgress",
+					value ? "1" : "0"
+				);
+			}
 		}
 
 		public int BytesPerSecondReceived
@@ -95,14 +146,32 @@ namespace Microsoft.Xna.Framework.Net
 
 		public bool IsEveryoneReady
 		{
-			get;
-			private set;
+			get
+			{
+				foreach (LocalNetworkGamer gamer in LocalGamers)
+				{
+					if (!gamer.IsReady)
+					{
+						return false;
+					}
+				}
+				return true;
+			}
 		}
 
 		public bool IsHost
 		{
-			get;
-			private set;
+			get
+			{
+				foreach (LocalNetworkGamer gamer in LocalGamers)
+				{
+					if (gamer.IsHost)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
 		}
 
 		public int MaxGamers
@@ -131,8 +200,24 @@ namespace Microsoft.Xna.Framework.Net
 
 		public NetworkSessionState SessionState
 		{
-			get;
-			private set;
+			get
+			{
+				return (NetworkSessionState) Enum.Parse(
+					typeof(NetworkSessionState),
+					SteamMatchmaking.GetLobbyData(
+						lobby,
+						"SessionState"
+					)
+				);
+			}
+			private set
+			{
+				SteamMatchmaking.SetLobbyData(
+					lobby,
+					"SessionState",
+					value.ToString()
+				);
+			}
 		}
 
 		public NetworkSessionType SessionType
@@ -155,11 +240,32 @@ namespace Microsoft.Xna.Framework.Net
 
 		#endregion
 
+		#region Internal Variables
+
+		internal CSteamID lobby;
+
+		#endregion
+
+		#region Private Variables
+
+		private int maxLocalGamers;
+
+		#endregion
+
 		#region Private Static Variables
 
 		private static NetworkSessionAction activeAction = null;
 
 		private static NetworkSession activeSession = null;
+
+		private static readonly ELobbyType[] SWSessionType = new ELobbyType[]
+		{
+			ELobbyType.k_ELobbyTypePrivate, // Local
+			ELobbyType.k_ELobbyTypePrivate, // LocalWithLeaderboards
+			ELobbyType.k_ELobbyTypePrivate, // FIXME: SystemLink
+			ELobbyType.k_ELobbyTypePublic, // PlayerMatch
+			ELobbyType.k_ELobbyTypePublic // Ranked
+		};
 
 		#endregion
 
@@ -223,12 +329,35 @@ namespace Microsoft.Xna.Framework.Net
 
 			public readonly AsyncCallback Callback;
 
-			public NetworkSessionAction(object state, AsyncCallback callback)
-			{
+			public readonly int MaxLocalGamers;
+			public readonly IEnumerable<SignedInGamer> LocalGamers;
+			public readonly int MaxPrivateSlots;
+			public readonly NetworkSessionProperties SessionProperties;
+			public readonly NetworkSessionType SessionType;
+
+			public CSteamID Lobby;
+
+			public NetworkSessionAction(
+				object state,
+				AsyncCallback callback,
+				int maxLocal,
+				IEnumerable<SignedInGamer> localGamers,
+				int maxPrivateSlots,
+				NetworkSessionProperties properties,
+				NetworkSessionType type
+			) {
 				AsyncState = state;
 				Callback = callback;
 				IsCompleted = false;
 				AsyncWaitHandle = new ManualResetEvent(true);
+
+				MaxLocalGamers = maxLocal;
+				LocalGamers = localGamers;
+				MaxPrivateSlots = maxPrivateSlots;
+				SessionProperties = properties;
+				SessionType = type;
+
+				Lobby = new CSteamID();
 			}
 		}
 
@@ -237,18 +366,92 @@ namespace Microsoft.Xna.Framework.Net
 		#region Internal Constructor
 
 		internal NetworkSession(
-			int maxGamers = MaxSupportedGamers,
-			int privateGamerSlots = 0,
-			bool allowHostMigration = false,
-			bool allowJoinInProgress = false
+			CSteamID lobby,
+			NetworkSessionProperties properties,
+			NetworkSessionType type,
+			bool isHost,
+			int maxGamers,
+			int privateGamerSlots,
+			int maxLocal,
+			IEnumerable<SignedInGamer> localGamers,
+			List<NetworkGamer> remoteGamers,
+			List<NetworkGamer> previousGamers
 		) {
+			this.lobby = lobby;
+			SessionProperties = properties;
+			SessionType = type;
 			MaxGamers = maxGamers;
 			PrivateGamerSlots = privateGamerSlots;
-			AllowHostMigration = allowHostMigration;
-			AllowJoinInProgress = allowJoinInProgress;
+
+			// Create Gamer lists
+
+			List<LocalNetworkGamer> locals = new List<LocalNetworkGamer>();
+			if (localGamers == null)
+			{
+				// FIXME: Check for mismatch in SignedInGamers Count -flibit
+				maxLocalGamers = maxLocal;
+				for (int i = 0; i < maxLocalGamers; i += 1)
+				{
+					locals.Add(new LocalNetworkGamer(
+						Gamer.SignedInGamers[i],
+						this
+					));
+				}
+			}
+			else
+			{
+				maxLocalGamers = 0;
+				foreach (SignedInGamer gamer in localGamers)
+				{
+					locals.Add(new LocalNetworkGamer(gamer, this));
+					maxLocalGamers += 1;
+				}
+			}
+			LocalGamers = new GamerCollection<LocalNetworkGamer>(locals);
+
+			if (remoteGamers == null)
+			{
+				remoteGamers = new List<NetworkGamer>();
+			}
+			RemoteGamers = new GamerCollection<NetworkGamer>(remoteGamers);
+
+			List<NetworkGamer> allGamers = new List<NetworkGamer>();
+			allGamers.AddRange(locals);
+			allGamers.AddRange(remoteGamers);
+			AllGamers = new GamerCollection<NetworkGamer>(allGamers);
+
+			PreviousGamers = new GamerCollection<NetworkGamer>(
+				new List<NetworkGamer>()
+			);
+
+			// Create host data
+
+			CSteamID host = SteamMatchmaking.GetLobbyOwner(lobby);
+			foreach (NetworkGamer gamer in AllGamers)
+			{
+				if (gamer.steamID == host)
+				{
+					Host = gamer;
+					break;
+				}
+			}
+
+			if (IsHost)
+			{
+				AllowHostMigration = false;
+				AllowJoinInProgress = false;
+				SessionState = NetworkSessionState.Lobby;
+			}
+
+			// Other defaults
+
 			SimulatedLatency = TimeSpan.Zero;
 			SimulatedPacketLoss = 0.0f;
 			IsDisposed = false;
+
+			// TODO: Everything below
+			BytesPerSecondReceived = 0;
+			BytesPerSecondSent = 0;
 		}
 
 		#endregion
@@ -273,7 +476,13 @@ namespace Microsoft.Xna.Framework.Net
 
 		public void AddLocalGamer(SignedInGamer gamer)
 		{
-			// TODO: .Add()...
+			if (LocalGamers.Count == maxLocalGamers)
+			{
+				throw new InvalidOperationException("LocalGamer max limit!");
+			}
+			LocalNetworkGamer adding = new LocalNetworkGamer(gamer, this);
+			LocalGamers.collection.Add(adding);
+			AllGamers.collection.Add(adding);
 		}
 
 		public NetworkGamer FindGamerById(byte gameId)
@@ -292,7 +501,10 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException("This NetworkSession is not the host");
 			}
 
-			// TODO: foreach IsReady = false...
+			foreach (NetworkGamer gamer in AllGamers)
+			{
+				gamer.IsReady = false;
+			}
 		}
 
 		public void StartGame()
@@ -310,7 +522,6 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException("NetworkSession is not Lobby");
 			}
 
-			// TODO: Actually start stuff...
 			SessionState = NetworkSessionState.Playing;
 			if (GameStarted != null)
 			{
@@ -333,7 +544,6 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException("NetworkSession is not Playing");
 			}
 
-			// TODO: Actually end stuff...
 			SessionState = NetworkSessionState.Lobby;
 			if (GameEnded != null)
 			{
@@ -357,7 +567,10 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndCreate(result);
 		}
 
@@ -377,7 +590,10 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndCreate(result);
 		}
 
@@ -397,7 +613,10 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndCreate(result);
 		}
 
@@ -417,8 +636,17 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException();
 			}
 
-			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
+			CreateLobby(sessionType, maxGamers);
+
+			activeAction = new NetworkSessionAction(
+				asyncState,
+				callback,
+				maxLocalGamers,
+				null,
+				0,
+				null,
+				sessionType
+			);
 			return activeAction;
 		}
 
@@ -444,8 +672,17 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException();
 			}
 
-			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
+			CreateLobby(sessionType, maxGamers);
+
+			activeAction = new NetworkSessionAction(
+				asyncState,
+				callback,
+				maxLocalGamers,
+				null,
+				privateGamerSlots,
+				sessionProperties,
+				sessionType
+			);
 			return activeAction;
 		}
 
@@ -467,8 +704,17 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException();
 			}
 
-			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
+			CreateLobby(sessionType, maxGamers);
+
+			activeAction = new NetworkSessionAction(
+				asyncState,
+				callback,
+				0,
+				localGamers,
+				privateGamerSlots,
+				sessionProperties,
+				sessionType
+			);
 			return activeAction;
 		}
 
@@ -479,9 +725,20 @@ namespace Microsoft.Xna.Framework.Net
 				throw new ArgumentException("result");
 			}
 
-			// TODO: Actual stuff?!
+			activeSession = new NetworkSession(
+				activeAction.Lobby,
+				activeAction.SessionProperties,
+				activeAction.SessionType,
+				true,
+				SteamMatchmaking.GetLobbyMemberLimit(activeAction.Lobby),
+				activeAction.MaxPrivateSlots,
+				activeAction.MaxLocalGamers,
+				activeAction.LocalGamers,
+				null,
+				null
+			);
+
 			activeAction = null;
-			activeSession = new NetworkSession();
 			return activeSession;
 		}
 
@@ -501,7 +758,10 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndFind(result);
 		}
 
@@ -517,7 +777,10 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndFind(result);
 		}
 
@@ -542,8 +805,9 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
-			return activeAction;
+			throw new NotImplementedException();
+			//activeAction = new NetworkSessionAction(asyncState, callback);
+			//return activeAction;
 		}
 
 		public static IAsyncResult BeginFind(
@@ -563,8 +827,9 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
-			return activeAction;
+			throw new NotImplementedException();
+			//activeAction = new NetworkSessionAction(asyncState, callback);
+			//return activeAction;
 		}
 
 		public static AvailableNetworkSessionCollection EndFind(IAsyncResult result)
@@ -587,7 +852,10 @@ namespace Microsoft.Xna.Framework.Net
 			AvailableNetworkSession availableSession
 		) {
 			IAsyncResult result = BeginJoin(availableSession, null, null);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndJoin(result);
 		}
 
@@ -606,8 +874,9 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
-			return activeAction;
+			throw new NotImplementedException();
+			//activeAction = new NetworkSessionAction(asyncState, callback);
+			//return activeAction;
 		}
 
 		public static NetworkSession EndJoin(IAsyncResult result)
@@ -619,7 +888,7 @@ namespace Microsoft.Xna.Framework.Net
 
 			// TODO: Actual stuff?!
 			activeAction = null;
-			activeSession = new NetworkSession();
+			//activeSession = new NetworkSession();
 			return activeSession;
 		}
 
@@ -627,7 +896,10 @@ namespace Microsoft.Xna.Framework.Net
 			int maxLocalGamers
 		) {
 			IAsyncResult result = BeginJoinInvited(maxLocalGamers, null, null);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndJoinInvited(result);
 		}
 
@@ -635,7 +907,10 @@ namespace Microsoft.Xna.Framework.Net
 			IEnumerable<SignedInGamer> localGamers
 		) {
 			IAsyncResult result = BeginJoinInvited(localGamers, null, null);
-			result.AsyncWaitHandle.WaitOne();
+			while (result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			return EndJoinInvited(result);
 		}
 
@@ -654,8 +929,9 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
-			return activeAction;
+			throw new NotImplementedException();
+			//activeAction = new NetworkSessionAction(asyncState, callback);
+			//return activeAction;
 		}
 
 		public static IAsyncResult BeginJoinInvited(
@@ -669,8 +945,9 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			// TODO: Actual stuff?!
-			activeAction = new NetworkSessionAction(asyncState, callback);
-			return activeAction;
+			throw new NotImplementedException();
+			//activeAction = new NetworkSessionAction(asyncState, callback);
+			//return activeAction;
 		}
 
 		public static NetworkSession EndJoinInvited(IAsyncResult result)
@@ -682,8 +959,52 @@ namespace Microsoft.Xna.Framework.Net
 
 			// TODO: Actual stuff?!
 			activeAction = null;
-			activeSession = new NetworkSession();
+			//activeSession = new NetworkSession();
 			return activeSession;
+		}
+
+		#endregion
+
+		#region Private Static Methods
+
+		private static CallResult<LobbyCreated_t> lobbyCreated;
+
+		private static void CreateLobby(NetworkSessionType type, int max)
+		{
+			SteamAPICall_t call = SteamMatchmaking.CreateLobby(
+				SWSessionType[(int) type],
+				max
+			);
+			if (call.m_SteamAPICall != 0)
+			{
+				if (lobbyCreated == null)
+				{
+					lobbyCreated = CallResult<LobbyCreated_t>.Create();
+				}
+				lobbyCreated.Set(call, OnLobbyCreated);
+			}
+		}
+
+		private static void OnLobbyCreated(LobbyCreated_t lobby, bool bIOFailure)
+		{
+			if (!bIOFailure && lobby.m_eResult == EResult.k_EResultOK)
+			{
+				activeAction.Lobby = new CSteamID(lobby.m_ulSteamIDLobby);
+				for (int i = 0; i < activeAction.SessionProperties.Count; i += 1)
+				{
+					// FIXME: null property checks! -flibit
+					SteamMatchmaking.SetLobbyData(
+						activeAction.Lobby,
+						i.ToString(),
+						activeAction.SessionProperties[i].ToString()
+					);
+				}
+			}
+			else
+			{
+				FNALoggerEXT.LogError(lobby.m_eResult.ToString());
+			}
+			activeAction.IsCompleted = true;
 		}
 
 		#endregion

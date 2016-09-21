@@ -10,6 +10,8 @@
 #region Using Statements
 using System;
 
+using Steamworks;
+
 using Microsoft.Xna.Framework.GamerServices;
 #endregion
 
@@ -45,14 +47,18 @@ namespace Microsoft.Xna.Framework.Net
 
 		public bool IsHost
 		{
-			get;
-			private set;
+			get
+			{
+				return (steamID == SteamMatchmaking.GetLobbyOwner(Session.lobby));
+			}
 		}
 
 		public bool IsLocal
 		{
-			get;
-			private set;
+			get
+			{
+				return (this is LocalNetworkGamer);
+			}
 		}
 
 		public bool IsMutedByLocalUser
@@ -104,8 +110,27 @@ namespace Microsoft.Xna.Framework.Net
 
 		#region Internal Constructor
 
-		internal NetworkGamer() : base(new Steamworks.CSteamID(), null, null)
-		{
+		internal NetworkGamer(
+			Steamworks.CSteamID id,
+			NetworkSession session
+		) : base(
+			id,
+			Steamworks.SteamFriends.GetFriendPersonaName(id),
+			Steamworks.SteamFriends.GetPlayerNickname(id)
+		) {
+			Session = session;
+
+			// TODO: Everything below
+			HasLeftSession = false;
+			HasVoice = false;
+			Id = 0;
+			IsGuest = false;
+			IsMutedByLocalUser = false;
+			IsPrivateSlot = false;
+			IsReady = false;
+			IsTalking = false;
+			Machine = null;
+			RoundtripTime = TimeSpan.Zero;
 		}
 
 		#endregion
