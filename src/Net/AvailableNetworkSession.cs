@@ -7,6 +7,10 @@
  */
 #endregion
 
+#region Using Statements
+using Steamworks;
+#endregion
+
 namespace Microsoft.Xna.Framework.Net
 {
 	public sealed class AvailableNetworkSession
@@ -47,6 +51,34 @@ namespace Microsoft.Xna.Framework.Net
 		{
 			get;
 			private set;
+		}
+
+		#endregion
+
+		#region Internal Variables
+
+		internal CSteamID lobby;
+
+		#endregion
+
+		#region Internal Constructor
+
+		internal AvailableNetworkSession(
+			CSteamID lobby,
+			int numGamers,
+			string host,
+			int privateSlots,
+			int publicSlots,
+			NetworkSessionProperties properties,
+			QualityOfService qos
+		) {
+			this.lobby = lobby;
+			CurrentGamerCount = numGamers;
+			HostGamertag = host;
+			OpenPrivateGamerSlots = privateSlots;
+			OpenPublicGamerSlots = publicSlots;
+			SessionProperties = properties;
+			QualityOfService = qos;
 		}
 
 		#endregion

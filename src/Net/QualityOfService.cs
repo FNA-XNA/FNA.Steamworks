@@ -48,5 +48,19 @@ namespace Microsoft.Xna.Framework.Net
 		}
 
 		#endregion
+
+		#region Internal Constructor
+
+		internal QualityOfService()
+		{
+			// TODO: Everything below
+			AverageRoundtripTime = TimeSpan.Zero;
+			BytesPerSecondDownstream = 0;
+			BytesPerSecondUpstream = 0;
+			IsAvailable = true;
+			MinimumRoundtripTime = TimeSpan.Zero;
+		}
+
+		#endregion
 	}
 }
