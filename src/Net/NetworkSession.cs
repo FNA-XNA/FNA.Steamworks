@@ -250,6 +250,13 @@ namespace Microsoft.Xna.Framework.Net
 
 		private int maxLocalGamers;
 
+		private Queue<NetworkGamer> queueJoined;
+		private Queue<NetworkGamer> queueLeft;
+		private NetworkGamer oldHost;
+		private bool gameStarted;
+		private bool gameEnded;
+		private NetworkSessionEndReason? sessionEndReason;
+
 		private Callback<LobbyChatUpdate_t> lobbyUpdated;
 		private Callback<P2PSessionRequest_t> p2pRequested;
 
@@ -490,6 +497,18 @@ namespace Microsoft.Xna.Framework.Net
 				);
 			}
 
+			// Event hookups
+			queueJoined = new Queue<NetworkGamer>();
+			foreach (NetworkGamer gamer in AllGamers)
+			{
+				queueJoined.Enqueue(gamer);
+			}
+			queueLeft = new Queue<NetworkGamer>();
+			oldHost = null;
+			gameStarted = false;
+			gameEnded = false;
+			sessionEndReason = null;
+
 			// Other defaults
 
 			SimulatedLatency = TimeSpan.Zero;
@@ -527,6 +546,63 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			// TODO: A whole bunch of crap I'm sure!
+
+			while (queueJoined.Count > 0)
+			{
+				NetworkGamer g = queueJoined.Dequeue();
+				if (GamerJoined != null)
+				{
+					GamerJoined(this, new GamerJoinedEventArgs(g));
+				}
+			}
+			while (queueLeft.Count > 0)
+			{
+				NetworkGamer g = queueLeft.Dequeue();
+				if (GamerLeft != null)
+				{
+					GamerLeft(this, new GamerLeftEventArgs(g));
+				}
+			}
+			if (oldHost != null)
+			{
+				if (HostChanged != null)
+				{
+					HostChanged(
+						this,
+						new HostChangedEventArgs(
+							oldHost,
+							Host
+						)
+					);
+				}
+				oldHost = null;
+			}
+			if (gameStarted)
+			{
+				if (GameStarted != null)
+				{
+					GameStarted(this, new GameStartedEventArgs());
+				}
+				gameStarted = false;
+			}
+			if (gameEnded)
+			{
+				if (GameEnded != null)
+				{
+					GameEnded(this, new GameEndedEventArgs());
+				}
+				gameEnded = false;
+			}
+			if (sessionEndReason.HasValue)
+			{
+				if (SessionEnded != null)
+				{
+					SessionEnded(this, new NetworkSessionEndedEventArgs(
+						sessionEndReason.Value
+					));
+				}
+				sessionEndReason = null;
+			}
 		}
 
 		public void AddLocalGamer(SignedInGamer gamer)
@@ -585,10 +661,7 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			SessionState = NetworkSessionState.Playing;
-			if (GameStarted != null)
-			{
-				GameStarted(this, new GameStartedEventArgs());
-			}
+			gameStarted = true;
 		}
 
 		public void EndGame()
@@ -607,10 +680,7 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			SessionState = NetworkSessionState.Lobby;
-			if (GameEnded != null)
-			{
-				GameEnded(this, new GameEndedEventArgs());
-			}
+			gameEnded = true;
 		}
 
 		#endregion
@@ -652,10 +722,7 @@ namespace Microsoft.Xna.Framework.Net
 					RemoteGamers.collection.Add(gamer);
 				}
 				AllGamers.collection.Add(gamer);
-				if (GamerJoined != null)
-				{
-					GamerJoined(this, new GamerJoinedEventArgs(gamer));
-				}
+				queueJoined.Enqueue(gamer);
 			}
 			else if (	change == EChatMemberStateChange.k_EChatMemberStateChangeLeft ||
 					change == EChatMemberStateChange.k_EChatMemberStateChangeDisconnected	)
@@ -681,10 +748,7 @@ namespace Microsoft.Xna.Framework.Net
 					RemoteGamers.collection.Remove(gamer);
 				}
 				AllGamers.collection.Remove(gamer);
-				if (GamerLeft != null)
-				{
-					GamerLeft(this, new GamerLeftEventArgs(gamer));
-				}
+				queueLeft.Enqueue(gamer);
 				if (gamer == Host)
 				{
 					CSteamID newHost = SteamMatchmaking.GetLobbyOwner(lobby);
@@ -692,19 +756,10 @@ namespace Microsoft.Xna.Framework.Net
 					{
 						if (g.steamID == newHost)
 						{
+							oldHost = Host;
 							Host = g;
 							break;
 						}
-					}
-					if (HostChanged != null)
-					{
-						HostChanged(
-							this,
-							new HostChangedEventArgs(
-								gamer,
-								Host
-							)
-						);
 					}
 				}
 			}
