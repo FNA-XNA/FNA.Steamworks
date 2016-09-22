@@ -21,7 +21,12 @@ namespace Microsoft.Xna.Framework.GamerServices
 		{
 			get
 			{
-				return collection[(int) index];
+				int id = (int) index;
+				if (id >= collection.Count)
+				{
+					return null;
+				}
+				return collection[id];
 			}
 		}
 
