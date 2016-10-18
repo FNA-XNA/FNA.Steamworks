@@ -655,7 +655,7 @@ namespace Microsoft.Xna.Framework.Net
 			{
 				throw new InvalidOperationException("This NetworkSession is not the host");
 			}
-			if (SessionState == NetworkSessionState.Lobby)
+			if (SessionState != NetworkSessionState.Lobby)
 			{
 				throw new InvalidOperationException("NetworkSession is not Lobby");
 			}
@@ -674,7 +674,7 @@ namespace Microsoft.Xna.Framework.Net
 			{
 				throw new InvalidOperationException("This NetworkSession is not the host");
 			}
-			if (SessionState == NetworkSessionState.Playing)
+			if (SessionState != NetworkSessionState.Playing)
 			{
 				throw new InvalidOperationException("NetworkSession is not Playing");
 			}
@@ -1433,7 +1433,6 @@ namespace Microsoft.Xna.Framework.Net
 			SteamAPICall_t call = SteamMatchmaking.RequestLobbyList();
 			if (call.m_SteamAPICall != 0)
 			{
-
 				if (lobbyFound == null)
 				{
 					lobbyFound = CallResult<LobbyMatchList_t>.Create();
@@ -1447,10 +1446,10 @@ namespace Microsoft.Xna.Framework.Net
 
 		private static void OnLobbyFound(LobbyMatchList_t lobby, bool bIOFailure)
 		{
+			activeAction.Lobbies = new CSteamID[lobby.m_nLobbiesMatching];
 			if (!bIOFailure && lobby.m_nLobbiesMatching > 0)
 			{
 				// Just pick the first one, whatevs -flibit
-				activeAction.Lobbies = new CSteamID[lobby.m_nLobbiesMatching];
 				for (int i = 0; i < activeAction.Lobbies.Length; i += 1)
 				{
 					activeAction.Lobbies[i] = SteamMatchmaking.GetLobbyByIndex(i);
