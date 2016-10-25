@@ -8,7 +8,8 @@
 #endregion
 
 #region Using Statements
-using Steamworks;
+using System;
+using System.Collections.Generic;
 
 using Microsoft.Xna.Framework.GamerServices;
 #endregion
@@ -23,8 +24,7 @@ namespace Microsoft.Xna.Framework.Net
 		{
 			get
 			{
-				uint data;
-				return SteamNetworking.IsP2PPacketAvailable(out data);
+				return packetQueue.Count > 0;
 			}
 		}
 
@@ -33,6 +33,12 @@ namespace Microsoft.Xna.Framework.Net
 			get;
 			private set;
 		}
+
+		#endregion
+
+		#region Internal Variables
+
+		internal Queue<NetworkSession.NetworkEvent> packetQueue;
 
 		#endregion
 
@@ -46,6 +52,8 @@ namespace Microsoft.Xna.Framework.Net
 			session
 		) {
 			SignedInGamer = gamer;
+
+			packetQueue = new Queue<NetworkSession.NetworkEvent>();
 		}
 
 		#endregion
@@ -69,25 +77,19 @@ namespace Microsoft.Xna.Framework.Net
 
 		public int ReceiveData(byte[] data, int offset, out NetworkGamer sender)
 		{
-			uint len = 0;
 			sender = null;
-
-			if (!SteamNetworking.IsP2PPacketAvailable(out len))
+			if (!IsDataAvailable)
 			{
-				return (int) len;
+				return 0;
 			}
 
-			CSteamID id;
-			SteamNetworking.ReadP2PPacket(
-				data, // FIXME: offset! -flibit
-				(uint) data.Length,
-				out len,
-				out id
-			);
+			uint len = 0;
+			NetworkSession.NetworkEvent packet = packetQueue.Dequeue();
+			Array.Copy(packet.Packet, 0, data, 0, offset);
 
 			foreach (NetworkGamer gamer in Session.AllGamers)
 			{
-				if (gamer.steamID == id)
+				if (gamer.steamID == packet.Gamer.steamID)
 				{
 					sender = gamer;
 					return (int) len;
@@ -100,31 +102,19 @@ namespace Microsoft.Xna.Framework.Net
 
 		public int ReceiveData(PacketReader data, out NetworkGamer sender)
 		{
-			uint len = 0;
 			sender = null;
-
-			if (!SteamNetworking.IsP2PPacketAvailable(out len))
+			if (!IsDataAvailable)
 			{
-				return (int) len;
+				return 0;
 			}
 
-			// FIXME: Do we want to alloc like this? -flibit
-			byte[] buf = new byte[len];
-
-			CSteamID id;
-			SteamNetworking.ReadP2PPacket(
-				buf,
-				(uint) buf.Length,
-				out len,
-				out id
-			);
-
-			data.BaseStream.Write(buf, 0, (int) len);
-			data.BaseStream.Seek(-len, System.IO.SeekOrigin.Current);
+			uint len = 0;
+			NetworkSession.NetworkEvent packet = packetQueue.Dequeue();
+			data.BaseStream.Write(packet.Packet, 0, packet.Packet.Length);
 
 			foreach (NetworkGamer gamer in Session.AllGamers)
 			{
-				if (gamer.steamID == id)
+				if (gamer.steamID == packet.Gamer.steamID)
 				{
 					sender = gamer;
 					return (int) len;
@@ -146,9 +136,18 @@ namespace Microsoft.Xna.Framework.Net
 			int count,
 			SendDataOptions options
 		) {
+			// FIXME: Do we want to alloc like this? -flibit
+			byte[] mem = new byte[count];
+			Array.Copy(data, offset, mem, 0, mem.Length);
 			foreach (NetworkGamer gamer in Session.AllGamers)
 			{
-				SendData(data, offset, count, options, gamer);
+				NetworkSession.NetworkEvent evt = new NetworkSession.NetworkEvent()
+				{
+					Type = NetworkSession.NetworkEventType.PacketSend,
+					Gamer = gamer,
+					Packet = mem
+				};
+				Session.SendNetworkEvent(evt);
 			}
 		}
 
@@ -167,12 +166,16 @@ namespace Microsoft.Xna.Framework.Net
 			SendDataOptions options,
 			NetworkGamer recipient
 		) {
-			SteamNetworking.SendP2PPacket(
-				recipient.steamID,
-				data,
-				(uint) data.Length,
-				EP2PSend.k_EP2PSendUnreliable // FIXME
-			);
+			// FIXME: Do we want to alloc like this? -flibit
+			byte[] mem = new byte[count];
+			Array.Copy(data, offset, mem, 0, mem.Length);
+			NetworkSession.NetworkEvent evt = new NetworkSession.NetworkEvent()
+			{
+				Type = NetworkSession.NetworkEventType.PacketSend,
+				Gamer = recipient,
+				Packet = mem
+			};
+			Session.SendNetworkEvent(evt);
 		}
 
 		public void SendData(PacketWriter data, SendDataOptions options)
@@ -181,13 +184,13 @@ namespace Microsoft.Xna.Framework.Net
 			byte[] mem = (data.BaseStream as System.IO.MemoryStream).ToArray();
 			foreach (NetworkGamer gamer in Session.AllGamers)
 			{
-				SendData(
-					mem,
-					0,
-					mem.Length,
-					options,
-					gamer
-				);
+				NetworkSession.NetworkEvent evt = new NetworkSession.NetworkEvent()
+				{
+					Type = NetworkSession.NetworkEventType.PacketSend,
+					Gamer = gamer,
+					Packet = mem
+				};
+				Session.SendNetworkEvent(evt);
 			}
 		}
 
@@ -198,13 +201,13 @@ namespace Microsoft.Xna.Framework.Net
 		) {
 			// FIXME: Do we want to alloc like this? -flibit
 			byte[] mem = (data.BaseStream as System.IO.MemoryStream).ToArray();
-			SendData(
-				mem,
-				0,
-				mem.Length,
-				options,
-				recipient
-			);
+			NetworkSession.NetworkEvent evt = new NetworkSession.NetworkEvent()
+			{
+				Type = NetworkSession.NetworkEventType.PacketSend,
+				Gamer = recipient,
+				Packet = mem
+			};
+			Session.SendNetworkEvent(evt);
 		}
 
 		#endregion

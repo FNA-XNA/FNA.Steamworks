@@ -28,6 +28,29 @@ namespace Microsoft.Xna.Framework.Net
 
 		#endregion
 
+		#region Network Event Structure
+
+		internal enum NetworkEventType
+		{
+			PacketSend,
+			GamerJoin,
+			GamerLeave,
+			HostChange,
+			StateChange
+		}
+
+		internal struct NetworkEvent
+		{
+			public NetworkEventType Type;
+
+			public NetworkGamer Gamer;
+			public byte[] Packet;
+			public NetworkSessionState State;
+			public NetworkSessionEndReason Reason;
+		}
+
+		#endregion
+
 		#region Public Properties
 
 		public bool IsDisposed
@@ -250,12 +273,7 @@ namespace Microsoft.Xna.Framework.Net
 
 		private int maxLocalGamers;
 
-		private Queue<NetworkGamer> queueJoined;
-		private Queue<NetworkGamer> queueLeft;
-		private NetworkGamer oldHost;
-		private bool gameStarted;
-		private bool gameEnded;
-		private NetworkSessionEndReason? sessionEndReason;
+		private Queue<NetworkEvent> networkEvents;
 
 		private Callback<LobbyChatUpdate_t> lobbyUpdated;
 		private Callback<P2PSessionRequest_t> p2pRequested;
@@ -498,16 +516,16 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			// Event hookups
-			queueJoined = new Queue<NetworkGamer>();
+			networkEvents = new Queue<NetworkEvent>();
 			foreach (NetworkGamer gamer in AllGamers)
 			{
-				queueJoined.Enqueue(gamer);
+				NetworkSession.NetworkEvent evt = new NetworkEvent()
+				{
+					Type = NetworkEventType.GamerJoin,
+					Gamer = gamer
+				};
+				SendNetworkEvent(evt);
 			}
-			queueLeft = new Queue<NetworkGamer>();
-			oldHost = null;
-			gameStarted = false;
-			gameEnded = false;
-			sessionEndReason = null;
 
 			// Other defaults
 
@@ -545,63 +563,111 @@ namespace Microsoft.Xna.Framework.Net
 				throw new ObjectDisposedException("this");
 			}
 
-			// TODO: A whole bunch of crap I'm sure!
+			while (networkEvents.Count > 0)
+			{
+				NetworkEvent evt = networkEvents.Dequeue();
 
-			while (queueJoined.Count > 0)
-			{
-				NetworkGamer g = queueJoined.Dequeue();
-				if (GamerJoined != null)
+				if (evt.Type == NetworkEventType.PacketSend)
 				{
-					GamerJoined(this, new GamerJoinedEventArgs(g));
-				}
-			}
-			while (queueLeft.Count > 0)
-			{
-				NetworkGamer g = queueLeft.Dequeue();
-				if (GamerLeft != null)
-				{
-					GamerLeft(this, new GamerLeftEventArgs(g));
-				}
-			}
-			if (oldHost != null)
-			{
-				if (HostChanged != null)
-				{
-					HostChanged(
-						this,
-						new HostChangedEventArgs(
-							oldHost,
-							Host
-						)
+					SteamNetworking.SendP2PPacket(
+						evt.Gamer.steamID,
+						evt.Packet,
+						(uint) evt.Packet.Length,
+						EP2PSend.k_EP2PSendUnreliable, // FIXME -flibit
+						0
 					);
 				}
-				oldHost = null;
-			}
-			if (gameStarted)
-			{
-				if (GameStarted != null)
+				else if (evt.Type == NetworkEventType.GamerJoin)
 				{
-					GameStarted(this, new GameStartedEventArgs());
+					if (GamerJoined != null)
+					{
+						GamerJoined(
+							this,
+							new GamerJoinedEventArgs(evt.Gamer)
+						);
+					}
 				}
-				gameStarted = false;
-			}
-			if (gameEnded)
-			{
-				if (GameEnded != null)
+				else if (evt.Type == NetworkEventType.GamerLeave)
 				{
-					GameEnded(this, new GameEndedEventArgs());
+					if (GamerJoined != null)
+					{
+						GamerJoined(
+							this,
+							new GamerJoinedEventArgs(evt.Gamer)
+						);
+					}
 				}
-				gameEnded = false;
-			}
-			if (sessionEndReason.HasValue)
-			{
-				if (SessionEnded != null)
+				else if (evt.Type == NetworkEventType.HostChange)
 				{
-					SessionEnded(this, new NetworkSessionEndedEventArgs(
-						sessionEndReason.Value
-					));
+					if (HostChanged != null)
+					{
+						HostChanged(
+							this,
+							new HostChangedEventArgs(
+								Host,
+								evt.Gamer
+							)
+						);
+					}
+
+					// FIXME: Is the timing on this accurate? -flibit
+					Host = evt.Gamer;
 				}
-				sessionEndReason = null;
+				else if (evt.Type == NetworkEventType.StateChange)
+				{
+					if (evt.State == NetworkSessionState.Playing)
+					{
+						if (GameStarted != null)
+						{
+							GameStarted(this, new GameStartedEventArgs());
+						}
+					}
+					else if (evt.State == NetworkSessionState.Lobby)
+					{
+						if (GameEnded != null)
+						{
+							GameEnded(this, new GameEndedEventArgs());
+						}
+					}
+					else // if (evt.State == NetworkSessionState.Ended)
+					{
+						SessionEnded(
+							this,
+							new NetworkSessionEndedEventArgs(evt.Reason)
+						);
+					}
+
+					// FIXME: Is the timing on this accurate? -flibit
+					SessionState = evt.State;
+				}
+			}
+
+			uint packetSize;
+			while (SteamNetworking.IsP2PPacketAvailable(out packetSize))
+			{
+				CSteamID id;
+				NetworkEvent evt = new NetworkEvent()
+				{
+					Packet = new byte[packetSize]
+				};
+				SteamNetworking.ReadP2PPacket(
+					evt.Packet,
+					(uint) evt.Packet.Length,
+					out packetSize,
+					out id
+				);
+				foreach (NetworkGamer gamer in AllGamers)
+				{
+					if (id == gamer.steamID)
+					{
+						evt.Gamer = gamer;
+						break;
+					}
+				}
+				foreach (LocalNetworkGamer gamer in LocalGamers)
+				{
+					gamer.packetQueue.Enqueue(evt);
+				}
 			}
 		}
 
@@ -660,8 +726,12 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException("NetworkSession is not Lobby");
 			}
 
-			SessionState = NetworkSessionState.Playing;
-			gameStarted = true;
+			NetworkEvent evt = new NetworkEvent()
+			{
+				Type = NetworkEventType.StateChange,
+				State = NetworkSessionState.Playing
+			};
+			SendNetworkEvent(evt);
 		}
 
 		public void EndGame()
@@ -679,8 +749,21 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException("NetworkSession is not Playing");
 			}
 
-			SessionState = NetworkSessionState.Lobby;
-			gameEnded = true;
+			NetworkEvent evt = new NetworkEvent()
+			{
+				Type = NetworkEventType.StateChange,
+				State = NetworkSessionState.Lobby
+			};
+			SendNetworkEvent(evt);
+		}
+
+		#endregion
+
+		#region Internal Methods
+
+		internal void SendNetworkEvent(NetworkEvent evt)
+		{
+			networkEvents.Enqueue(evt);
 		}
 
 		#endregion
@@ -722,7 +805,13 @@ namespace Microsoft.Xna.Framework.Net
 					RemoteGamers.collection.Add(gamer);
 				}
 				AllGamers.collection.Add(gamer);
-				queueJoined.Enqueue(gamer);
+
+				NetworkEvent evt = new NetworkEvent()
+				{
+					Type = NetworkEventType.GamerJoin,
+					Gamer = gamer
+				};
+				SendNetworkEvent(evt);
 			}
 			else if (	change == EChatMemberStateChange.k_EChatMemberStateChangeLeft ||
 					change == EChatMemberStateChange.k_EChatMemberStateChangeDisconnected	)
@@ -748,7 +837,14 @@ namespace Microsoft.Xna.Framework.Net
 					RemoteGamers.collection.Remove(gamer);
 				}
 				AllGamers.collection.Remove(gamer);
-				queueLeft.Enqueue(gamer);
+
+				NetworkEvent evt = new NetworkEvent()
+				{
+					Type = NetworkEventType.GamerJoin,
+					Gamer = gamer
+				};
+				SendNetworkEvent(evt);
+
 				if (gamer == Host)
 				{
 					CSteamID newHost = SteamMatchmaking.GetLobbyOwner(lobby);
@@ -756,8 +852,12 @@ namespace Microsoft.Xna.Framework.Net
 					{
 						if (g.steamID == newHost)
 						{
-							oldHost = Host;
-							Host = g;
+							evt = new NetworkEvent()
+							{
+								Type = NetworkEventType.HostChange,
+								Gamer = g
+							};
+							SendNetworkEvent(evt);
 							break;
 						}
 					}
@@ -778,6 +878,7 @@ namespace Microsoft.Xna.Framework.Net
 					SteamNetworking.AcceptP2PSessionWithUser(
 						request.m_steamIDRemote
 					);
+					return;
 				}
 			}
 		}
