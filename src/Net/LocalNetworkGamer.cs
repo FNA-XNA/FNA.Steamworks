@@ -145,7 +145,8 @@ namespace Microsoft.Xna.Framework.Net
 				{
 					Type = NetworkSession.NetworkEventType.PacketSend,
 					Gamer = gamer,
-					Packet = mem
+					Packet = mem,
+					Reliable = options
 				};
 				Session.SendNetworkEvent(evt);
 			}
@@ -173,7 +174,8 @@ namespace Microsoft.Xna.Framework.Net
 			{
 				Type = NetworkSession.NetworkEventType.PacketSend,
 				Gamer = recipient,
-				Packet = mem
+				Packet = mem,
+				Reliable = options
 			};
 			Session.SendNetworkEvent(evt);
 		}
@@ -188,7 +190,8 @@ namespace Microsoft.Xna.Framework.Net
 				{
 					Type = NetworkSession.NetworkEventType.PacketSend,
 					Gamer = gamer,
-					Packet = mem
+					Packet = mem,
+					Reliable = options
 				};
 				Session.SendNetworkEvent(evt);
 			}
@@ -205,7 +208,8 @@ namespace Microsoft.Xna.Framework.Net
 			{
 				Type = NetworkSession.NetworkEventType.PacketSend,
 				Gamer = recipient,
-				Packet = mem
+				Packet = mem,
+				Reliable = options
 			};
 			Session.SendNetworkEvent(evt);
 		}

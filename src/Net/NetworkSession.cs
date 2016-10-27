@@ -45,6 +45,7 @@ namespace Microsoft.Xna.Framework.Net
 
 			public NetworkGamer Gamer;
 			public byte[] Packet;
+			public SendDataOptions Reliable;
 			public NetworkSessionState State;
 			public NetworkSessionEndReason Reason;
 		}
@@ -293,6 +294,15 @@ namespace Microsoft.Xna.Framework.Net
 			ELobbyType.k_ELobbyTypePrivate, // FIXME: SystemLink
 			ELobbyType.k_ELobbyTypePublic, // PlayerMatch
 			ELobbyType.k_ELobbyTypePublic // Ranked
+		};
+
+		private static readonly EP2PSend[] SWSendType = new EP2PSend[]
+		{
+			EP2PSend.k_EP2PSendUnreliable,
+			EP2PSend.k_EP2PSendReliable,
+			EP2PSend.k_EP2PSendUnreliable, // FIXME: WithBuffering? -flibit
+			EP2PSend.k_EP2PSendReliableWithBuffering,
+			EP2PSend.k_EP2PSendReliableWithBuffering
 		};
 
 		private static CallResult<LobbyCreated_t> lobbyCreated;
@@ -573,7 +583,7 @@ namespace Microsoft.Xna.Framework.Net
 						evt.Gamer.steamID,
 						evt.Packet,
 						(uint) evt.Packet.Length,
-						EP2PSend.k_EP2PSendUnreliable, // FIXME -flibit
+						SWSendType[(int) evt.Reliable],
 						0
 					);
 				}
