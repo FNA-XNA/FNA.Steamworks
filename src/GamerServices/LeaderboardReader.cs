@@ -408,7 +408,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 		) {
 			if (!bIOFailure && board.m_bLeaderboardFound > 0)
 			{
-				Leaderboards.Add(readAction.ID.Key, board.m_hSteamLeaderboard);
+				if (!Leaderboards.ContainsKey(readAction.ID.Key))
+				{
+					Leaderboards.Add(readAction.ID.Key, board.m_hSteamLeaderboard);
+				}
 
 				readAction.Leaderboard = board.m_hSteamLeaderboard;
 
