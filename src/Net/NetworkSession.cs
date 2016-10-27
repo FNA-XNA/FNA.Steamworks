@@ -277,6 +277,7 @@ namespace Microsoft.Xna.Framework.Net
 		private Queue<NetworkEvent> networkEvents;
 
 		private Callback<LobbyChatUpdate_t> lobbyUpdated;
+		private Callback<LobbyDataUpdate_t> lobbyDataUpdated;
 		private Callback<P2PSessionRequest_t> p2pRequested;
 
 		#endregion
@@ -433,6 +434,9 @@ namespace Microsoft.Xna.Framework.Net
 			lobbyUpdated = Callback<LobbyChatUpdate_t>.Create(
 				OnLobbyUpdated
 			);
+			lobbyDataUpdated = Callback<LobbyDataUpdate_t>.Create(
+				OnLobbyDataUpdated
+			);
 			p2pRequested = Callback<P2PSessionRequest_t>.Create(
 				OnP2PRequested
 			);
@@ -556,6 +560,7 @@ namespace Microsoft.Xna.Framework.Net
 		{
 			// Unhook lobby events
 			lobbyUpdated.Unregister();
+			lobbyDataUpdated.Unregister();
 			p2pRequested.Unregister();
 
 			// TODO: CloseP2PSessionWithUser -flibit
@@ -599,11 +604,11 @@ namespace Microsoft.Xna.Framework.Net
 				}
 				else if (evt.Type == NetworkEventType.GamerLeave)
 				{
-					if (GamerJoined != null)
+					if (GamerLeft != null)
 					{
-						GamerJoined(
+						GamerLeft(
 							this,
-							new GamerJoinedEventArgs(evt.Gamer)
+							new GamerLeftEventArgs(evt.Gamer)
 						);
 					}
 				}
@@ -877,6 +882,17 @@ namespace Microsoft.Xna.Framework.Net
 			{
 				FNALoggerEXT.LogInfo(change.ToString());
 			}
+		}
+
+		private void OnLobbyDataUpdated(LobbyDataUpdate_t data)
+		{
+			// FIXME: Assuming SessionChange! -flibit
+			NetworkEvent evt = new NetworkEvent()
+			{
+				Type = NetworkEventType.StateChange,
+				State = SessionState
+			};
+			SendNetworkEvent(evt);
 		}
 
 		private void OnP2PRequested(P2PSessionRequest_t request)
