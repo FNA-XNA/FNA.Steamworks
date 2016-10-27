@@ -495,6 +495,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 					);
 				}
 			}
+			readAction.IsCompleted = true;
 		}
 
 		#endregion

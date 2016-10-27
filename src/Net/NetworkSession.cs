@@ -448,7 +448,7 @@ namespace Microsoft.Xna.Framework.Net
 			{
 				// FIXME: Check for mismatch in SignedInGamers Count -flibit
 				maxLocalGamers = maxLocal;
-				for (int i = 0; i < maxLocalGamers; i += 1)
+				for (int i = 0; i < Gamer.SignedInGamers.Count && i < maxLocalGamers; i += 1)
 				{
 					locals.Add(new LocalNetworkGamer(
 						Gamer.SignedInGamers[i],

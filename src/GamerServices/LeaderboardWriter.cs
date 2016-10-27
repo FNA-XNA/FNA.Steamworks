@@ -15,6 +15,9 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public LeaderboardEntry GetLeaderboard(LeaderboardIdentity leaderboardId)
 		{
+			// FIXME: Should we just magically have leaderboards by this point? -flibit
+			LeaderboardReader.Read(leaderboardId, 0, 1);
+
 			// FIXME: Do these other parameters even matter? -flibit
 			return new LeaderboardEntry(
 				null,
