@@ -419,12 +419,19 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 				if (readAction.Gamers != null)
 				{
-					throw new NotSupportedException(
-						"Leaderboard with list of Gamers"
+					/* FIXME: We're just going to assume "Friends" here...
+					 * There is DownloadLeaderboardEntriesForUsers, but holy shit,
+					 * have you seen the way they expect you to get friend gamers?
+					 * -flibit
+					 */
+					result = SteamUserStats.DownloadLeaderboardEntries(
+						readAction.Leaderboard,
+						ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends,
+						readAction.PageStart,
+						readAction.PageSize
 					);
 				}
-
-				if (readAction.PivotGamer == null)
+				else if (readAction.PivotGamer == null)
 				{
 					result = SteamUserStats.DownloadLeaderboardEntries(
 						readAction.Leaderboard,
