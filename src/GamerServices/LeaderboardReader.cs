@@ -85,8 +85,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#region Private Variables
 
+		private int pageSize;
 		private SteamLeaderboard_t leaderboard;
 		private List<LeaderboardEntry> entries;
+		private bool isFriendBoard;
 
 		#endregion
 
@@ -156,7 +158,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			public readonly IEnumerable<Gamer> Gamers;
 
 			public SteamLeaderboard_t Leaderboard;
-			public List<LeaderboardEntry> InitialEntries;
+			public List<LeaderboardEntry> Entries;
 
 			public LeaderboardReaderAction(
 				object state,
@@ -187,14 +189,18 @@ namespace Microsoft.Xna.Framework.GamerServices
 		internal LeaderboardReader(
 			LeaderboardIdentity identity,
 			int start,
+			int size,
 			SteamLeaderboard_t board,
-			List<LeaderboardEntry> entries
+			List<LeaderboardEntry> entries,
+			bool friends
 		) {
 			LeaderboardIdentity = identity;
 			PageStart = start;
+			pageSize = size;
 			leaderboard = board;
 			this.entries = entries;
 			TotalLeaderboardSize = SteamUserStats.GetLeaderboardEntryCount(leaderboard);
+			isFriendBoard = friends;
 
 			IsDisposed = false;
 		}
@@ -219,13 +225,41 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			// TODO: Actual stuff?! -flibit
-			return null;
+			SteamAPICall_t call = SteamUserStats.DownloadLeaderboardEntries(
+				Leaderboards[LeaderboardIdentity.Key],
+				isFriendBoard ?
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends :
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestUsers,
+				Entries[Entries.Count - 1].RankingEXT + 1,
+				Entries[Entries.Count - 1].RankingEXT + pageSize
+			);
+			if (call.m_SteamAPICall != 0)
+			{
+				CallResult<LeaderboardScoresDownloaded_t> scoresDownloaded;
+				scoresDownloaded = new CallResult<LeaderboardScoresDownloaded_t>();
+				scoresDownloaded.Set(
+					call,
+					OnScoresDownloaded
+				);
+			}
+			readAction = new LeaderboardReaderAction(
+				asyncState,
+				callback,
+				LeaderboardIdentity,
+				PageStart + pageSize,
+				pageSize,
+				null,
+				null
+			);
+			readAction.Leaderboard = Leaderboards[LeaderboardIdentity.Key];
+			return readAction;
 		}
 
 		public void EndPageDown(IAsyncResult result)
 		{
-			// TODO: Actual stuff?! -flibit
+			// FIXME: Entry caching! -flibit
+			PageStart = readAction.PageStart;
+			entries = readAction.Entries;
 		}
 
 		public void PageUp()
@@ -239,13 +273,41 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			// TODO: Actual stuff?! -flibit
-			return null;
+			SteamAPICall_t call = SteamUserStats.DownloadLeaderboardEntries(
+				Leaderboards[LeaderboardIdentity.Key],
+				isFriendBoard ?
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends :
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestUsers,
+				Entries[0].RankingEXT - pageSize,
+				Entries[0].RankingEXT - 1
+			);
+			if (call.m_SteamAPICall != 0)
+			{
+				CallResult<LeaderboardScoresDownloaded_t> scoresDownloaded;
+				scoresDownloaded = new CallResult<LeaderboardScoresDownloaded_t>();
+				scoresDownloaded.Set(
+					call,
+					OnScoresDownloaded
+				);
+			}
+			readAction = new LeaderboardReaderAction(
+				asyncState,
+				callback,
+				LeaderboardIdentity,
+				PageStart - pageSize,
+				pageSize,
+				null,
+				null
+			);
+			readAction.Leaderboard = Leaderboards[LeaderboardIdentity.Key];
+			return readAction;
 		}
 
 		public void EndPageUp(IAsyncResult result)
 		{
-			// TODO: Actual stuff?! -flibit
+			// FIXME: Entry caching! -flibit
+			PageStart = readAction.PageStart;
+			entries = readAction.Entries;
 		}
 
 		#endregion
@@ -377,8 +439,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			LeaderboardReader reader = new LeaderboardReader(
 				readAction.ID,
 				readAction.PageStart,
+				readAction.PageSize,
 				readAction.Leaderboard,
-				readAction.InitialEntries
+				readAction.Entries,
+				readAction.Gamers != null // FIXME
 			);
 			readAction = null;
 			return reader;
@@ -484,7 +548,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 				scores.m_hSteamLeaderboardEntries.m_SteamLeaderboardEntries != 0 &&
 				readAction.Leaderboard.m_SteamLeaderboard != 0	)
 			{
-				readAction.InitialEntries = new List<LeaderboardEntry>(scores.m_cEntryCount);
+				readAction.Entries = new List<LeaderboardEntry>(scores.m_cEntryCount);
 				LeaderboardEntry_t entry;
 				for (int i = 0; i < scores.m_cEntryCount; i += 1)
 				{
@@ -495,7 +559,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 						null,
 						0
 					);
-					readAction.InitialEntries.Add(
+					readAction.Entries.Add(
 						new LeaderboardEntry(
 							new LeaderboardGamer(entry.m_steamIDUser),
 							entry.m_nScore,
