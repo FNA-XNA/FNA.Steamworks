@@ -32,13 +32,16 @@ namespace Microsoft.Xna.Framework.GamerServices
 		{
 			get
 			{
-				if (entries.Count == 0)
+				if (entryCache.Count == 0)
 				{
 					return false;
 				}
-				// TODO: Gamers/Friends list
-				return (	PageStart < entries.Count ||
-						entries[entries.Count - 1].RankingEXT < TotalLeaderboardSize	);
+				if (isFriendBoard)
+				{
+					return (PageStart + pageSize) < entryCache.Count;
+				}
+				return (	PageStart < entryCache.Count ||
+						entryCache[entryCache.Count - 1].RankingEXT < TotalLeaderboardSize	);
 			}
 		}
 
@@ -46,12 +49,16 @@ namespace Microsoft.Xna.Framework.GamerServices
 		{
 			get
 			{
-				if (entries.Count == 0)
+				if (entryCache.Count == 0)
 				{
 					return false;
 				}
-				// TODO: Gamers/Friends list
-				return (PageStart > 0 || entries[0].RankingEXT > 1);
+				if (isFriendBoard)
+				{
+					return (PageStart - pageSize) >= 0;
+				}
+				return (	PageStart > 0 ||
+						entryCache[0].RankingEXT > 1	);
 			}
 		}
 
@@ -88,6 +95,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 		private int pageSize;
 		private SteamLeaderboard_t leaderboard;
 		private List<LeaderboardEntry> entries;
+		private List<LeaderboardEntry> entryCache;
 		private bool isFriendBoard;
 
 		#endregion
@@ -152,10 +160,11 @@ namespace Microsoft.Xna.Framework.GamerServices
 			public readonly AsyncCallback Callback;
 
 			public readonly LeaderboardIdentity ID;
-			public readonly int PageStart;
 			public readonly int PageSize;
 			public readonly Gamer PivotGamer;
 			public readonly IEnumerable<Gamer> Gamers;
+
+			public int PageStart;
 
 			public SteamLeaderboard_t Leaderboard;
 			public List<LeaderboardEntry> Entries;
@@ -198,9 +207,15 @@ namespace Microsoft.Xna.Framework.GamerServices
 			PageStart = start;
 			pageSize = size;
 			leaderboard = board;
-			this.entries = entries;
 			TotalLeaderboardSize = SteamUserStats.GetLeaderboardEntryCount(leaderboard);
 			isFriendBoard = friends;
+
+			entryCache = entries;
+			this.entries = new List<LeaderboardEntry>(pageSize);
+			for (int i = PageStart; i < pageSize && i < entryCache.Count; i += 1)
+			{
+				this.entries.Add(entryCache[i]);
+			}
 
 			IsDisposed = false;
 		}
@@ -217,7 +232,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 		public void PageDown()
 		{
 			IAsyncResult result = BeginPageDown(null, null);
-			result.AsyncWaitHandle.WaitOne();
+			while (!result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			EndPageDown(result);
 		}
 
@@ -225,47 +243,73 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			SteamAPICall_t call = SteamUserStats.DownloadLeaderboardEntries(
-				Leaderboards[LeaderboardIdentity.Key],
-				isFriendBoard ?
-					ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends :
-					ELeaderboardDataRequest.k_ELeaderboardDataRequestUsers,
-				Entries[Entries.Count - 1].RankingEXT + 1,
-				Entries[Entries.Count - 1].RankingEXT + pageSize
-			);
-			if (call.m_SteamAPICall != 0)
-			{
-				CallResult<LeaderboardScoresDownloaded_t> scoresDownloaded;
-				scoresDownloaded = new CallResult<LeaderboardScoresDownloaded_t>();
-				scoresDownloaded.Set(
-					call,
-					OnScoresDownloaded
-				);
-			}
 			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
 				LeaderboardIdentity,
-				PageStart + pageSize,
+				PageStart,
 				pageSize,
 				null,
 				null
 			);
 			readAction.Leaderboard = Leaderboards[LeaderboardIdentity.Key];
+
+			if (PageStart + pageSize * 2 <= entryCache.Count)
+			{
+				readAction.IsCompleted = true;
+			}
+			else if (!CanPageDown)
+			{
+				readAction.IsCompleted = true;
+
+				// Cannot increment page start, bail immediately
+				return readAction;
+			}
+			else if (isFriendBoard)
+			{
+				// Friend max is 100, no need to download ever
+				readAction.IsCompleted = true;
+			}
+			else
+			{
+				SteamAPICall_t call = SteamUserStats.DownloadLeaderboardEntries(
+					Leaderboards[LeaderboardIdentity.Key],
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobal,
+					entryCache[entryCache.Count - 1].RankingEXT + 1,
+					entryCache[entryCache.Count - 1].RankingEXT + pageSize
+				);
+				if (call.m_SteamAPICall != 0)
+				{
+					CallResult<LeaderboardScoresDownloaded_t> scoresDownloaded;
+					scoresDownloaded = new CallResult<LeaderboardScoresDownloaded_t>();
+					scoresDownloaded.Set(
+						call,
+						DoPageDown
+					);
+				}
+			}
+			readAction.PageStart += pageSize;
 			return readAction;
 		}
 
 		public void EndPageDown(IAsyncResult result)
 		{
-			// FIXME: Entry caching! -flibit
-			PageStart = readAction.PageStart;
-			entries = readAction.Entries;
+			PageStart += readAction.PageStart;
+
+			entries = new List<LeaderboardEntry>(pageSize);
+			for (int i = PageStart; i < pageSize && i < entryCache.Count; i += 1)
+			{
+				entries.Add(entryCache[i]);
+			}
 		}
 
 		public void PageUp()
 		{
 			IAsyncResult result = BeginPageUp(null, null);
-			result.AsyncWaitHandle.WaitOne();
+			while (!result.IsCompleted)
+			{
+				SteamAPI.RunCallbacks();
+			}
 			EndPageUp(result);
 		}
 
@@ -273,41 +317,121 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			SteamAPICall_t call = SteamUserStats.DownloadLeaderboardEntries(
-				Leaderboards[LeaderboardIdentity.Key],
-				isFriendBoard ?
-					ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends :
-					ELeaderboardDataRequest.k_ELeaderboardDataRequestUsers,
-				Entries[0].RankingEXT - pageSize,
-				Entries[0].RankingEXT - 1
-			);
-			if (call.m_SteamAPICall != 0)
-			{
-				CallResult<LeaderboardScoresDownloaded_t> scoresDownloaded;
-				scoresDownloaded = new CallResult<LeaderboardScoresDownloaded_t>();
-				scoresDownloaded.Set(
-					call,
-					OnScoresDownloaded
-				);
-			}
 			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
 				LeaderboardIdentity,
-				PageStart - pageSize,
+				PageStart,
 				pageSize,
 				null,
 				null
 			);
 			readAction.Leaderboard = Leaderboards[LeaderboardIdentity.Key];
+
+			if (PageStart >= pageSize)
+			{
+				readAction.PageStart -= pageSize;
+				readAction.IsCompleted = true;
+			}
+			else if (!CanPageUp)
+			{
+				readAction.IsCompleted = true;
+			}
+			else
+			{
+				SteamAPICall_t call = SteamUserStats.DownloadLeaderboardEntries(
+					Leaderboards[LeaderboardIdentity.Key],
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobal,
+					entryCache[0].RankingEXT - pageSize,
+					entryCache[0].RankingEXT - 1
+				);
+				if (call.m_SteamAPICall != 0)
+				{
+					CallResult<LeaderboardScoresDownloaded_t> scoresDownloaded;
+					scoresDownloaded = new CallResult<LeaderboardScoresDownloaded_t>();
+					scoresDownloaded.Set(
+						call,
+						DoPageUp
+					);
+				}
+			}
+
 			return readAction;
 		}
 
 		public void EndPageUp(IAsyncResult result)
 		{
-			// FIXME: Entry caching! -flibit
 			PageStart = readAction.PageStart;
-			entries = readAction.Entries;
+
+			entries = new List<LeaderboardEntry>(pageSize);
+			for (int i = PageStart; i < pageSize && i < entryCache.Count; i += 1)
+			{
+				entries.Add(entryCache[i]);
+			}
+		}
+
+		#endregion
+
+		#region Private Methods
+
+		private void DoPageDown(
+			LeaderboardScoresDownloaded_t scores,
+			bool bioFailure
+		) {
+			if (scores.m_hSteamLeaderboardEntries.m_SteamLeaderboardEntries != 0)
+			{
+				LeaderboardEntry_t entry;
+				for (int i = 0; i < scores.m_cEntryCount; i += 1)
+				{
+					SteamUserStats.GetDownloadedLeaderboardEntry(
+						scores.m_hSteamLeaderboardEntries,
+						i,
+						out entry,
+						null,
+						0
+					);
+					entryCache.Add(
+						new LeaderboardEntry(
+							new LeaderboardGamer(entry.m_steamIDUser),
+							entry.m_nScore,
+							entry.m_nGlobalRank,
+							readAction.Leaderboard
+						)
+					);
+				}
+			}
+			readAction.IsCompleted = true;
+		}
+
+		private void DoPageUp(
+			LeaderboardScoresDownloaded_t scores,
+			bool bioFailure
+		) {
+			if (scores.m_hSteamLeaderboardEntries.m_SteamLeaderboardEntries != 0)
+			{
+				LeaderboardEntry_t entry;
+				for (int i = scores.m_cEntryCount - 1; i >= 0; i -= 1)
+				{
+					SteamUserStats.GetDownloadedLeaderboardEntry(
+						scores.m_hSteamLeaderboardEntries,
+						i,
+						out entry,
+						null,
+						0
+					);
+					entryCache.Insert(
+						0,
+						new LeaderboardEntry(
+							new LeaderboardGamer(entry.m_steamIDUser),
+							entry.m_nScore,
+							entry.m_nGlobalRank,
+							readAction.Leaderboard
+						)
+					);
+				}
+				PageStart = PageStart + scores.m_cEntryCount - pageSize;
+			}
+			readAction.IsCompleted = true;
 		}
 
 		#endregion
@@ -470,6 +594,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 			LeaderboardFindResult_t board,
 			bool bIOFailure
 		) {
+			const int InitialCacheSize = 100;
+
 			if (!bIOFailure && board.m_bLeaderboardFound > 0)
 			{
 				if (!Leaderboards.ContainsKey(readAction.ID.Key))
@@ -491,8 +617,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 					result = SteamUserStats.DownloadLeaderboardEntries(
 						readAction.Leaderboard,
 						ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends,
-						readAction.PageStart,
-						readAction.PageSize
+						0,
+						InitialCacheSize
 					);
 				}
 				else if (readAction.PivotGamer == null)
@@ -500,8 +626,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 					result = SteamUserStats.DownloadLeaderboardEntries(
 						readAction.Leaderboard,
 						ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobal,
-						readAction.PageStart,
-						readAction.PageSize
+						1,
+						InitialCacheSize
 					);
 				}
 				else
@@ -515,8 +641,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 					result = SteamUserStats.DownloadLeaderboardEntries(
 						readAction.Leaderboard,
 						ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobalAroundUser,
-						readAction.PageSize / -2,
-						readAction.PageSize / 2
+						readAction.PageStart - (InitialCacheSize / 2),
+						readAction.PageStart + (InitialCacheSize / 2)
 					);
 				}
 
@@ -545,8 +671,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			bool bIOFailure
 		) {
 			if (	!bIOFailure &&
-				scores.m_hSteamLeaderboardEntries.m_SteamLeaderboardEntries != 0 &&
-				readAction.Leaderboard.m_SteamLeaderboard != 0	)
+				scores.m_hSteamLeaderboardEntries.m_SteamLeaderboardEntries != 0	)
 			{
 				readAction.Entries = new List<LeaderboardEntry>(scores.m_cEntryCount);
 				LeaderboardEntry_t entry;
