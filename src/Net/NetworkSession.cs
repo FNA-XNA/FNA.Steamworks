@@ -1299,7 +1299,7 @@ namespace Microsoft.Xna.Framework.Net
 				activeAction = new NetworkSessionAction(
 					asyncState,
 					callback,
-					0,
+					4, // FIXME
 					null,
 					0,
 					null,
@@ -1347,10 +1347,10 @@ namespace Microsoft.Xna.Framework.Net
 				null, // FIXME
 				NetworkSessionType.PlayerMatch, // FIXME
 				MaxSupportedGamers, // FIXME
-				0, // FIXME
-				0, // FIXME
-				null,
-				remotes // FIXME
+				4, // FIXME
+				activeAction.MaxLocalGamers,
+				activeAction.LocalGamers,
+				remotes
 			);
 			activeAction = null;
 			return activeSession;
@@ -1493,7 +1493,7 @@ namespace Microsoft.Xna.Framework.Net
 				null, // FIXME
 				NetworkSessionType.PlayerMatch, // FIXME
 				MaxSupportedGamers, // FIXME
-				0, // FIXME
+				4, // FIXME
 				activeAction.MaxLocalGamers,
 				activeAction.LocalGamers,
 				remotes
