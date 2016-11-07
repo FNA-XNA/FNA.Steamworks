@@ -481,8 +481,8 @@ namespace Microsoft.Xna.Framework.Net
 			RemoteGamers = new GamerCollection<NetworkGamer>(remoteGamers);
 
 			List<NetworkGamer> allGamers = new List<NetworkGamer>();
-			allGamers.AddRange(locals);
 			allGamers.AddRange(remoteGamers);
+			allGamers.AddRange(locals);
 			AllGamers = new GamerCollection<NetworkGamer>(allGamers);
 
 			PreviousGamers = new GamerCollection<NetworkGamer>(
