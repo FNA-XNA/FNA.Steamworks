@@ -855,7 +855,7 @@ namespace Microsoft.Xna.Framework.Net
 
 				NetworkEvent evt = new NetworkEvent()
 				{
-					Type = NetworkEventType.GamerJoin,
+					Type = NetworkEventType.GamerLeave,
 					Gamer = gamer
 				};
 				SendNetworkEvent(evt);
@@ -1317,6 +1317,31 @@ namespace Microsoft.Xna.Framework.Net
 				throw new ArgumentException("result");
 			}
 
+			int numMems = SteamMatchmaking.GetNumLobbyMembers(activeAction.Lobby);
+			List<CSteamID> remotes = new List<CSteamID>(
+				numMems - Gamer.SignedInGamers.Count
+			);
+			for (int i = 0; i < numMems; i += 1)
+			{
+				CSteamID id = SteamMatchmaking.GetLobbyMemberByIndex(
+					activeAction.Lobby,
+					i
+				);
+				bool isRemote = true;
+				for (int j = 0; j < Gamer.SignedInGamers.Count; j += 1)
+				{
+					if (id == Gamer.SignedInGamers[j].steamID)
+					{
+						isRemote = false;
+						break;
+					}
+				}
+				if (isRemote)
+				{
+					remotes.Add(id);
+				}
+			}
+
 			activeSession = new NetworkSession(
 				activeAction.Lobby,
 				null, // FIXME
@@ -1325,7 +1350,7 @@ namespace Microsoft.Xna.Framework.Net
 				0, // FIXME
 				0, // FIXME
 				null,
-				null // FIXME
+				remotes // FIXME
 			);
 			activeAction = null;
 			return activeSession;
