@@ -129,7 +129,7 @@ namespace Microsoft.Xna.Framework.Net
 			IsPrivateSlot = false;
 			IsReady = false;
 			IsTalking = false;
-			Machine = null;
+			Machine = new NetworkMachine();
 			RoundtripTime = TimeSpan.Zero;
 		}
 
