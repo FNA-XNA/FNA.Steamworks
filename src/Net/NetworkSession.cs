@@ -1229,7 +1229,7 @@ namespace Microsoft.Xna.Framework.Net
 
 			for (int i = 0; i < activeAction.Lobbies.Length; i += 1)
 			{
-				sessions[i] = new AvailableNetworkSession(
+				sessions.Add(new AvailableNetworkSession(
 					activeAction.Lobbies[i],
 					int.Parse(SteamMatchmaking.GetLobbyData(
 						activeAction.Lobbies[i],
@@ -1249,7 +1249,7 @@ namespace Microsoft.Xna.Framework.Net
 					)),
 					activeAction.SessionProperties,
 					new QualityOfService() // FIXME
-				);
+				));
 			}
 
 			activeAction = null;
@@ -1288,7 +1288,7 @@ namespace Microsoft.Xna.Framework.Net
 			SteamAPICall_t call = SteamMatchmaking.JoinLobby(availableSession.lobby);
 			if (call.m_SteamAPICall != 0)
 			{
-				if (lobbyJoined != null)
+				if (lobbyJoined == null)
 				{
 					lobbyJoined = CallResult<LobbyEnter_t>.Create();
 				}
