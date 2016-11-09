@@ -279,6 +279,7 @@ namespace Microsoft.Xna.Framework.Net
 		private Callback<LobbyChatUpdate_t> lobbyUpdated;
 		private Callback<LobbyDataUpdate_t> lobbyDataUpdated;
 		private Callback<P2PSessionRequest_t> p2pRequested;
+		private Callback<P2PSessionConnectFail_t> p2pFailed;
 
 		#endregion
 
@@ -440,6 +441,9 @@ namespace Microsoft.Xna.Framework.Net
 			p2pRequested = Callback<P2PSessionRequest_t>.Create(
 				OnP2PRequested
 			);
+			p2pFailed = Callback<P2PSessionConnectFail_t>.Create(
+				OnP2PConnectFailed
+			);
 
 			// Create Gamer lists
 
@@ -562,6 +566,7 @@ namespace Microsoft.Xna.Framework.Net
 			lobbyUpdated.Unregister();
 			lobbyDataUpdated.Unregister();
 			p2pRequested.Unregister();
+			p2pFailed.Unregister();
 
 			// TODO: CloseP2PSessionWithUser -flibit
 
@@ -907,6 +912,14 @@ namespace Microsoft.Xna.Framework.Net
 					return;
 				}
 			}
+		}
+
+		private void OnP2PConnectFailed(P2PSessionConnectFail_t failure)
+		{
+			FNALoggerEXT.LogError(
+				"Error connecting to " + failure.m_steamIDRemote +
+				": " + ((EP2PSessionError) failure.m_eP2PSessionError).ToString()
+			);
 		}
 
 		#endregion

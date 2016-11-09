@@ -185,6 +185,7 @@ namespace Microsoft.Xna.Framework.Net
 		{
 			// FIXME: Do we want to alloc like this? -flibit
 			byte[] mem = (data.BaseStream as System.IO.MemoryStream).ToArray();
+			data.BaseStream.Seek(0, System.IO.SeekOrigin.Begin);
 			foreach (NetworkGamer gamer in Session.AllGamers)
 			{
 				NetworkSession.NetworkEvent evt = new NetworkSession.NetworkEvent()
@@ -205,6 +206,7 @@ namespace Microsoft.Xna.Framework.Net
 		) {
 			// FIXME: Do we want to alloc like this? -flibit
 			byte[] mem = (data.BaseStream as System.IO.MemoryStream).ToArray();
+			data.BaseStream.Seek(0, System.IO.SeekOrigin.Begin);
 			NetworkSession.NetworkEvent evt = new NetworkSession.NetworkEvent()
 			{
 				Type = NetworkSession.NetworkEventType.PacketSend,
