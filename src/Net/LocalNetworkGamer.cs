@@ -110,6 +110,7 @@ namespace Microsoft.Xna.Framework.Net
 
 			uint len = 0;
 			NetworkSession.NetworkEvent packet = packetQueue.Dequeue();
+			data.BaseStream.Seek(0, System.IO.SeekOrigin.Begin);
 			data.BaseStream.Write(packet.Packet, 0, packet.Packet.Length);
 			data.BaseStream.Seek(0, System.IO.SeekOrigin.Begin);
 
