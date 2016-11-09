@@ -119,11 +119,11 @@ namespace Microsoft.Xna.Framework.Net
 			Steamworks.SteamFriends.GetPlayerNickname(id)
 		) {
 			Session = session;
+			unchecked { Id = (byte) Gamertag.GetHashCode(); } // FIXME
 
 			// TODO: Everything below
 			HasLeftSession = false;
 			HasVoice = false;
-			Id = 0;
 			IsGuest = false;
 			IsMutedByLocalUser = false;
 			IsPrivateSlot = false;
