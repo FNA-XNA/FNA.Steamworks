@@ -1043,7 +1043,7 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException();
 			}
 
-			CreateLobby(sessionType, maxGamers);
+			CreateLobby(sessionType, maxGamers, privateGamerSlots);
 
 			activeAction = new NetworkSessionAction(
 				asyncState,
@@ -1075,7 +1075,7 @@ namespace Microsoft.Xna.Framework.Net
 				throw new InvalidOperationException();
 			}
 
-			CreateLobby(sessionType, maxGamers);
+			CreateLobby(sessionType, maxGamers, privateGamerSlots);
 
 			activeAction = new NetworkSessionAction(
 				asyncState,
@@ -1410,7 +1410,7 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			if (call.m_SteamAPICall != 0)
 			{
-				if (lobbyJoined != null)
+				if (lobbyJoined == null)
 				{
 					lobbyJoined = CallResult<LobbyEnter_t>.Create();
 				}
@@ -1447,7 +1447,7 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			if (call.m_SteamAPICall != 0)
 			{
-				if (lobbyJoined != null)
+				if (lobbyJoined == null)
 				{
 					lobbyJoined = CallResult<LobbyEnter_t>.Create();
 				}
@@ -1519,21 +1519,18 @@ namespace Microsoft.Xna.Framework.Net
 
 		#region Internal Static Methods
 
-		internal static void OnInviteAccepted(LobbyInvite_t invite, bool bIOFailure)
+		internal static void OnInviteAccepted(GameLobbyJoinRequested_t request)
 		{
-			if (!bIOFailure)
+			inviteLobby = request.m_steamIDLobby;
+			if (InviteAccepted != null)
 			{
-				inviteLobby = new CSteamID(invite.m_ulSteamIDLobby);
-				if (InviteAccepted != null)
-				{
-					InviteAccepted(
-						null,
-						new InviteAcceptedEventArgs(
-							Gamer.SignedInGamers[0], // FIXME
-							inviteLobby == activeSession.lobby
-						)
-					);
-				}
+				InviteAccepted(
+					null,
+					new InviteAcceptedEventArgs(
+						Gamer.SignedInGamers[0], // FIXME
+						activeSession != null && inviteLobby == activeSession.lobby
+					)
+				);
 			}
 		}
 
@@ -1541,11 +1538,20 @@ namespace Microsoft.Xna.Framework.Net
 
 		#region Private Static Methods
 
-		private static void CreateLobby(NetworkSessionType type, int max)
-		{
+		private static void CreateLobby(
+			NetworkSessionType type,
+			int maxGamers,
+			int maxPrivateGamers = 0
+		) {
+			ELobbyType lobbyType = SWSessionType[(int) type];
+			if (maxPrivateGamers > 0)
+			{
+				// FIXME: Better way to determine private lobby... -flibit
+				lobbyType = ELobbyType.k_ELobbyTypePrivate;
+			}
 			SteamAPICall_t call = SteamMatchmaking.CreateLobby(
 				SWSessionType[(int) type],
-				max
+				maxGamers
 			);
 			if (call.m_SteamAPICall != 0)
 			{

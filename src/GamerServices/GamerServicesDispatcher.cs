@@ -39,6 +39,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 #pragma warning disable 0414
 		private static Callback<GameOverlayActivated_t> overlayActivated;
 		private static Callback<GamepadTextInputDismissed_t> textInputDismissed;
+		private static Callback<GameLobbyJoinRequested_t> lobbyJoinRequested;
 #pragma warning restore 0414
 
 		#endregion
@@ -61,6 +62,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 			overlayActivated = Callback<GameOverlayActivated_t>.Create(Guide.OnOverlayActivated);
 			textInputDismissed = Callback<GamepadTextInputDismissed_t>.Create(Guide.OnTextInputDismissed);
+			lobbyJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(Net.NetworkSession.OnInviteAccepted);
 
 			SteamUserStats.RequestCurrentStats();
 
