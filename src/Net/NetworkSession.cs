@@ -637,6 +637,13 @@ namespace Microsoft.Xna.Framework.Net
 				{
 					if (evt.State == NetworkSessionState.Playing)
 					{
+						if (IsHost)
+						{
+							SteamMatchmaking.SetLobbyJoinable(
+								lobby,
+								AllowJoinInProgress
+							);
+						}
 						if (GameStarted != null)
 						{
 							GameStarted(this, new GameStartedEventArgs());
@@ -644,6 +651,10 @@ namespace Microsoft.Xna.Framework.Net
 					}
 					else if (evt.State == NetworkSessionState.Lobby)
 					{
+						if (IsHost)
+						{
+							SteamMatchmaking.SetLobbyJoinable(lobby, true);
+						}
 						if (GameEnded != null)
 						{
 							GameEnded(this, new GameEndedEventArgs());
