@@ -188,6 +188,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 				PageSize = size;
 				PivotGamer = pivot;
 				Gamers = gamers;
+
+				Leaderboards.TryGetValue(ID.Key, out Leaderboard);
 			}
 		}
 
@@ -252,7 +254,6 @@ namespace Microsoft.Xna.Framework.GamerServices
 				null,
 				null
 			);
-			readAction.Leaderboard = Leaderboards[LeaderboardIdentity.Key];
 
 			if (PageStart + pageSize * 2 <= entryCache.Count)
 			{
@@ -326,7 +327,6 @@ namespace Microsoft.Xna.Framework.GamerServices
 				null,
 				null
 			);
-			readAction.Leaderboard = Leaderboards[LeaderboardIdentity.Key];
 
 			if (PageStart >= pageSize)
 			{
@@ -504,7 +504,6 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			FindLeaderboard(leaderboardId.Key);
 			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
@@ -514,6 +513,14 @@ namespace Microsoft.Xna.Framework.GamerServices
 				null,
 				null
 			);
+			if (readAction.Leaderboard.m_SteamLeaderboard == 0)
+			{
+				FindLeaderboard(leaderboardId.Key);
+			}
+			else
+			{
+				DownloadEntries();
+			}
 			return readAction;
 		}
 
@@ -524,7 +531,6 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			FindLeaderboard(leaderboardId.Key);
 			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
@@ -534,6 +540,14 @@ namespace Microsoft.Xna.Framework.GamerServices
 				pivotGamer,
 				null
 			);
+			if (readAction.Leaderboard.m_SteamLeaderboard == 0)
+			{
+				FindLeaderboard(leaderboardId.Key);
+			}
+			else
+			{
+				DownloadEntries();
+			}
 			return readAction;
 		}
 
@@ -545,7 +559,6 @@ namespace Microsoft.Xna.Framework.GamerServices
 			AsyncCallback callback,
 			object asyncState
 		) {
-			FindLeaderboard(leaderboardId.Key);
 			readAction = new LeaderboardReaderAction(
 				asyncState,
 				callback,
@@ -555,6 +568,14 @@ namespace Microsoft.Xna.Framework.GamerServices
 				pivotGamer,
 				gamers
 			);
+			if (readAction.Leaderboard.m_SteamLeaderboard == 0)
+			{
+				FindLeaderboard(leaderboardId.Key);
+			}
+			else
+			{
+				DownloadEntries();
+			}
 			return readAction;
 		}
 
@@ -594,71 +615,71 @@ namespace Microsoft.Xna.Framework.GamerServices
 			LeaderboardFindResult_t board,
 			bool bIOFailure
 		) {
-			const int InitialCacheSize = 100;
-
 			if (!bIOFailure && board.m_bLeaderboardFound > 0)
 			{
-				if (!Leaderboards.ContainsKey(readAction.ID.Key))
-				{
-					Leaderboards.Add(readAction.ID.Key, board.m_hSteamLeaderboard);
-				}
-
+				Leaderboards.Add(readAction.ID.Key, board.m_hSteamLeaderboard);
 				readAction.Leaderboard = board.m_hSteamLeaderboard;
+				DownloadEntries();
+			}
+			else
+			{
+				readAction.IsCompleted = true;
+			}
+		}
 
-				SteamAPICall_t result;
+		private static void DownloadEntries()
+		{
+			const int InitialCacheSize = 100;
 
-				if (readAction.Gamers != null)
-				{
-					/* FIXME: We're just going to assume "Friends" here...
-					 * There is DownloadLeaderboardEntriesForUsers, but holy shit,
-					 * have you seen the way they expect you to get friend gamers?
-					 * -flibit
-					 */
-					result = SteamUserStats.DownloadLeaderboardEntries(
-						readAction.Leaderboard,
-						ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends,
-						0,
-						InitialCacheSize
-					);
-				}
-				else if (readAction.PivotGamer == null)
-				{
-					result = SteamUserStats.DownloadLeaderboardEntries(
-						readAction.Leaderboard,
-						ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobal,
-						1,
-						InitialCacheSize
-					);
-				}
-				else
-				{
-					if (readAction.PivotGamer.steamID != SteamUser.GetSteamID())
-					{
-						throw new NotSupportedException(
-							"Global score around user other than host"
-						);
-					}
-					result = SteamUserStats.DownloadLeaderboardEntries(
-						readAction.Leaderboard,
-						ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobalAroundUser,
-						readAction.PageStart - (InitialCacheSize / 2),
-						readAction.PageStart + (InitialCacheSize / 2)
-					);
-				}
+			SteamAPICall_t result;
 
-				if (result.m_SteamAPICall != 0)
+			if (readAction.Gamers != null)
+			{
+				/* FIXME: We're just going to assume "Friends" here...
+				 * There is DownloadLeaderboardEntriesForUsers, but holy shit,
+				 * have you seen the way they expect you to get friend gamers?
+				 * -flibit
+				 */
+				result = SteamUserStats.DownloadLeaderboardEntries(
+					readAction.Leaderboard,
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestFriends,
+					0,
+					InitialCacheSize
+				);
+			}
+			else if (readAction.PivotGamer == null)
+			{
+				result = SteamUserStats.DownloadLeaderboardEntries(
+					readAction.Leaderboard,
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobal,
+					1,
+					InitialCacheSize
+				);
+			}
+			else
+			{
+				if (readAction.PivotGamer.steamID != SteamUser.GetSteamID())
 				{
-					CallResult<LeaderboardScoresDownloaded_t> downloaded;
-					downloaded = new CallResult<LeaderboardScoresDownloaded_t>();
-					downloaded.Set(
-						result,
-						OnScoresDownloaded
+					throw new NotSupportedException(
+						"Global score around user other than host"
 					);
 				}
-				else
-				{
-					readAction.IsCompleted = true;
-				}
+				result = SteamUserStats.DownloadLeaderboardEntries(
+					readAction.Leaderboard,
+					ELeaderboardDataRequest.k_ELeaderboardDataRequestGlobalAroundUser,
+					readAction.PageStart - (InitialCacheSize / 2),
+					readAction.PageStart + (InitialCacheSize / 2)
+				);
+			}
+
+			if (result.m_SteamAPICall != 0)
+			{
+				CallResult<LeaderboardScoresDownloaded_t> downloaded;
+				downloaded = new CallResult<LeaderboardScoresDownloaded_t>();
+				downloaded.Set(
+					result,
+					OnScoresDownloaded
+				);
 			}
 			else
 			{
