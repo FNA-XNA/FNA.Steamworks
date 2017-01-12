@@ -72,7 +72,30 @@ namespace Microsoft.Xna.Framework.GamerServices
 				SteamFriends.GetPersonaName(),
 				success
 			));
-			// TODO: Initial guests!
+
+			// FIXME: This is stupid -flibit
+			startGamers.Add(new SignedInGamer(
+				SteamUser.GetSteamID(),
+				SteamFriends.GetPersonaName() + " (1)",
+				success,
+				true,
+				PlayerIndex.Two
+			));
+			startGamers.Add(new SignedInGamer(
+				SteamUser.GetSteamID(),
+				SteamFriends.GetPersonaName() + " (2)",
+				success,
+				true,
+				PlayerIndex.Three
+			));
+			startGamers.Add(new SignedInGamer(
+				SteamUser.GetSteamID(),
+				SteamFriends.GetPersonaName() + " (3)",
+				success,
+				true,
+				PlayerIndex.Four
+			));
+
 			Gamer.SignedInGamers = new SignedInGamerCollection(startGamers);
 			foreach (SignedInGamer gamer in Gamer.SignedInGamers)
 			{
