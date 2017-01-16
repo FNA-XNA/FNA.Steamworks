@@ -226,12 +226,21 @@ namespace Microsoft.Xna.Framework.Net
 		{
 			get
 			{
-				return (NetworkSessionState) Enum.Parse(
-					typeof(NetworkSessionState),
-					SteamMatchmaking.GetLobbyData(
+				string result = SteamMatchmaking.GetLobbyData(
+					lobby,
+					"SessionState"
+				);
+				while (string.IsNullOrEmpty(result))
+				{
+					SteamAPI.RunCallbacks();
+					result = SteamMatchmaking.GetLobbyData(
 						lobby,
 						"SessionState"
-					)
+					);
+				}
+				return (NetworkSessionState) Enum.Parse(
+					typeof(NetworkSessionState),
+					result
 				);
 			}
 			private set
@@ -454,10 +463,14 @@ namespace Microsoft.Xna.Framework.Net
 				maxLocalGamers = maxLocal;
 				for (int i = 0; i < Gamer.SignedInGamers.Count && i < maxLocalGamers; i += 1)
 				{
-					locals.Add(new LocalNetworkGamer(
-						Gamer.SignedInGamers[i],
-						this
-					));
+					// FIXME: Guests are fake! -flibit
+					if (!Gamer.SignedInGamers[i].IsGuest)
+					{
+						locals.Add(new LocalNetworkGamer(
+							Gamer.SignedInGamers[i],
+							this
+						));
+					}
 				}
 			}
 			else
@@ -816,7 +829,8 @@ namespace Microsoft.Xna.Framework.Net
 				SignedInGamer localGamer = null;
 				foreach (SignedInGamer g in Gamer.SignedInGamers)
 				{
-					if (user == g.steamID)
+					// FIXME: Guests are fake! -flibit
+					if (!g.IsGuest && user == g.steamID)
 					{
 						localGamer = g;
 						break;
@@ -1341,14 +1355,19 @@ namespace Microsoft.Xna.Framework.Net
 				throw new ArgumentException("result");
 			}
 
-			int numMems = SteamMatchmaking.GetNumLobbyMembers(activeAction.Lobby);
+			CSteamID actionLobby = activeAction.Lobby;
+			int actionMaxLocalGamers = activeAction.MaxLocalGamers;
+			IEnumerable<SignedInGamer> actionLocalGamers = activeAction.LocalGamers;
+			activeAction = null;
+
+			int numMems = SteamMatchmaking.GetNumLobbyMembers(actionLobby);
 			List<CSteamID> remotes = new List<CSteamID>(
-				numMems - Gamer.SignedInGamers.Count
+				numMems - 1 /* FIXME: Guests are fake! Gamer.SignedInGamers.Count */
 			);
 			for (int i = 0; i < numMems; i += 1)
 			{
 				CSteamID id = SteamMatchmaking.GetLobbyMemberByIndex(
-					activeAction.Lobby,
+					actionLobby,
 					i
 				);
 				bool isRemote = true;
@@ -1367,16 +1386,15 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			activeSession = new NetworkSession(
-				activeAction.Lobby,
+				actionLobby,
 				null, // FIXME
 				NetworkSessionType.PlayerMatch, // FIXME
 				MaxSupportedGamers, // FIXME
 				4, // FIXME
-				activeAction.MaxLocalGamers,
-				activeAction.LocalGamers,
+				actionMaxLocalGamers,
+				actionLocalGamers,
 				remotes
 			);
-			activeAction = null;
 			return activeSession;
 		}
 
@@ -1487,14 +1505,19 @@ namespace Microsoft.Xna.Framework.Net
 				throw new ArgumentException("result");
 			}
 
-			int numMems = SteamMatchmaking.GetNumLobbyMembers(activeAction.Lobby);
+			CSteamID actionLobby = activeAction.Lobby;
+			int actionMaxLocalGamers = activeAction.MaxLocalGamers;
+			IEnumerable<SignedInGamer> actionLocalGamers = activeAction.LocalGamers;
+			activeAction = null;
+
+			int numMems = SteamMatchmaking.GetNumLobbyMembers(actionLobby);
 			List<CSteamID> remotes = new List<CSteamID>(
-				numMems - Gamer.SignedInGamers.Count
+				numMems - 1 /* FIXME: Guests are fake! Gamer.SignedInGamers.Count */
 			);
 			for (int i = 0; i < numMems; i += 1)
 			{
 				CSteamID id = SteamMatchmaking.GetLobbyMemberByIndex(
-					activeAction.Lobby,
+					actionLobby,
 					i
 				);
 				bool isRemote = true;
@@ -1513,16 +1536,15 @@ namespace Microsoft.Xna.Framework.Net
 			}
 
 			activeSession = new NetworkSession(
-				activeAction.Lobby,
+				actionLobby,
 				null, // FIXME
 				NetworkSessionType.PlayerMatch, // FIXME
 				MaxSupportedGamers, // FIXME
 				4, // FIXME
-				activeAction.MaxLocalGamers,
-				activeAction.LocalGamers,
+				actionMaxLocalGamers,
+				actionLocalGamers,
 				remotes
 			);
-			activeAction = null;
 			return activeSession;
 		}
 
