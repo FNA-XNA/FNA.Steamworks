@@ -581,9 +581,32 @@ namespace Microsoft.Xna.Framework.Net
 			p2pRequested.Unregister();
 			p2pFailed.Unregister();
 
-			// TODO: CloseP2PSessionWithUser -flibit
-
+			// Leave lobby, close all connections
 			SteamMatchmaking.LeaveLobby(lobby);
+			foreach (NetworkGamer gamer in RemoteGamers)
+			{
+				SteamNetworking.CloseP2PSessionWithUser(gamer.steamID);
+			}
+
+			// Flush packets
+			foreach (LocalNetworkGamer gamer in LocalGamers)
+			{
+				gamer.packetQueue.Clear();
+			}
+			uint packetSize;
+			while (SteamNetworking.IsP2PPacketAvailable(out packetSize))
+			{
+				byte[] whatever = new byte[packetSize];
+				uint seriously;
+				CSteamID iDontCare;
+				SteamNetworking.ReadP2PPacket(
+					whatever,
+					(uint) whatever.Length,
+					out seriously,
+					out iDontCare,
+					0
+				);
+			}
 
 			activeSession = null;
 			IsDisposed = true;
