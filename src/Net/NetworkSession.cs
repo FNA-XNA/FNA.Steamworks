@@ -283,6 +283,8 @@ namespace Microsoft.Xna.Framework.Net
 
 		private int maxLocalGamers;
 
+		private List<byte> idDatabase;
+
 		private Queue<NetworkEvent> networkEvents;
 
 		private Callback<LobbyChatUpdate_t> lobbyUpdated;
@@ -455,6 +457,8 @@ namespace Microsoft.Xna.Framework.Net
 			);
 
 			// Create Gamer lists
+
+			idDatabase = new List<byte>();
 
 			List<LocalNetworkGamer> locals = new List<LocalNetworkGamer>();
 			if (localGamers == null)
@@ -833,6 +837,21 @@ namespace Microsoft.Xna.Framework.Net
 			networkEvents.Enqueue(evt);
 		}
 
+		internal byte GetNetworkId(CSteamID id)
+		{
+			// Fucking API, why a byte, why -flibit
+			byte result = (byte) (id.GetAccountID().m_AccountID & 0xFF);
+
+			// FIXME: Two gamers with 1 ID join at once, WHO WILL WIN?! -flibit
+			while (idDatabase.Contains(result))
+			{
+				result += 1;
+			}
+			idDatabase.Add(result);
+
+			return result;
+		}
+
 		#endregion
 
 		#region Private Methods
@@ -896,6 +915,8 @@ namespace Microsoft.Xna.Framework.Net
 				{
 					return; // ???
 				}
+
+				idDatabase.Remove(gamer.Id);
 				if (gamer.IsLocal)
 				{
 					LocalGamers.collection.Remove(gamer as LocalNetworkGamer);

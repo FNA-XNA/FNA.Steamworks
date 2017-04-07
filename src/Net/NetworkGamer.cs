@@ -119,7 +119,7 @@ namespace Microsoft.Xna.Framework.Net
 			Steamworks.SteamFriends.GetPlayerNickname(id)
 		) {
 			Session = session;
-			unchecked { Id = (byte) Gamertag.GetHashCode(); } // FIXME
+			Id = Session.GetNetworkId(steamID);
 
 			// TODO: Everything below
 			HasLeftSession = false;
