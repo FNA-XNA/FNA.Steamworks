@@ -1007,7 +1007,7 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1030,7 +1030,7 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1053,7 +1053,7 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1084,7 +1084,7 @@ namespace Microsoft.Xna.Framework.Net
 				maxLocalGamers,
 				null,
 				0,
-				null,
+				new NetworkSessionProperties(),
 				sessionType
 			);
 			return activeAction;
@@ -1196,7 +1196,7 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1215,7 +1215,7 @@ namespace Microsoft.Xna.Framework.Net
 				null,
 				null
 			);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1346,7 +1346,7 @@ namespace Microsoft.Xna.Framework.Net
 			AvailableNetworkSession availableSession
 		) {
 			IAsyncResult result = BeginJoin(availableSession, null, null);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1446,7 +1446,7 @@ namespace Microsoft.Xna.Framework.Net
 			int maxLocalGamers
 		) {
 			IAsyncResult result = BeginJoinInvited(maxLocalGamers, null, null);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1457,7 +1457,7 @@ namespace Microsoft.Xna.Framework.Net
 			IEnumerable<SignedInGamer> localGamers
 		) {
 			IAsyncResult result = BeginJoinInvited(localGamers, null, null);
-			while (result.IsCompleted)
+			while (!result.IsCompleted)
 			{
 				SteamAPI.RunCallbacks();
 			}
@@ -1647,11 +1647,12 @@ namespace Microsoft.Xna.Framework.Net
 				activeAction.Lobby = new CSteamID(lobby.m_ulSteamIDLobby);
 				for (int i = 0; i < activeAction.SessionProperties.Count; i += 1)
 				{
-					// FIXME: null property checks! -flibit
 					SteamMatchmaking.SetLobbyData(
 						activeAction.Lobby,
 						i.ToString(),
-						activeAction.SessionProperties[i].ToString()
+						activeAction.SessionProperties[i] != null ?
+							activeAction.SessionProperties[i].ToString() :
+							string.Empty
 					);
 				}
 			}
