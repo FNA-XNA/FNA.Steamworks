@@ -245,7 +245,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 		private void OnStatsStored(UserStatsStored_t stats)
 		{
 			// FIXME: Pray that we don't get overlap -flibit
-			statStoreAction.IsCompleted = true;
+			if (statStoreAction != null)
+			{
+				statStoreAction.IsCompleted = true;
+			}
 		}
 
 		private void OnStatsReceived(UserStatsReceived_t stats)
