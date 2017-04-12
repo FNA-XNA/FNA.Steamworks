@@ -236,7 +236,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			IAsyncResult result = BeginPageDown(null, null);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			EndPageDown(result);
 		}
@@ -309,7 +309,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			IAsyncResult result = BeginPageUp(null, null);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			EndPageUp(result);
 		}
@@ -452,7 +452,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndRead(result);
 		}
@@ -471,7 +471,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndRead(result);
 		}
@@ -492,7 +492,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndRead(result);
 		}

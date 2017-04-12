@@ -232,7 +232,7 @@ namespace Microsoft.Xna.Framework.Net
 				);
 				while (string.IsNullOrEmpty(result))
 				{
-					SteamAPI.RunCallbacks();
+					GamerServicesDispatcher.Update();
 					result = SteamMatchmaking.GetLobbyData(
 						lobby,
 						"SessionState"
@@ -1009,7 +1009,7 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndCreate(result);
 		}
@@ -1032,7 +1032,7 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndCreate(result);
 		}
@@ -1055,7 +1055,7 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndCreate(result);
 		}
@@ -1198,7 +1198,7 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndFind(result);
 		}
@@ -1217,7 +1217,7 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndFind(result);
 		}
@@ -1348,7 +1348,7 @@ namespace Microsoft.Xna.Framework.Net
 			IAsyncResult result = BeginJoin(availableSession, null, null);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndJoin(result);
 		}
@@ -1448,7 +1448,7 @@ namespace Microsoft.Xna.Framework.Net
 			IAsyncResult result = BeginJoinInvited(maxLocalGamers, null, null);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndJoinInvited(result);
 		}
@@ -1459,7 +1459,7 @@ namespace Microsoft.Xna.Framework.Net
 			IAsyncResult result = BeginJoinInvited(localGamers, null, null);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndJoinInvited(result);
 		}

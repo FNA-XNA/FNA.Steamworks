@@ -187,7 +187,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 			IAsyncResult result = BeginGetAchievements(null, null);
 			while (!result.IsCompleted)
 			{
-				SteamAPI.RunCallbacks();
+				GamerServicesDispatcher.Update();
 			}
 			return EndGetAchievements(result);
 		}

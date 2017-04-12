@@ -36,6 +36,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		#region Private Static Variables
 
+		private static object steamUpdateMutex = new object();
+
 #pragma warning disable 0414
 		private static Callback<GameOverlayActivated_t> overlayActivated;
 		private static Callback<GamepadTextInputDismissed_t> textInputDismissed;
@@ -105,7 +107,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public static void Update()
 		{
-			SteamAPI.RunCallbacks();
+			lock (steamUpdateMutex)
+			{
+				SteamAPI.RunCallbacks();
+			}
 
 			// TODO: Guest hotplugging!
 		}
