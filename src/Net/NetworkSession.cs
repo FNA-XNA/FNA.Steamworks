@@ -1627,7 +1627,7 @@ namespace Microsoft.Xna.Framework.Net
 				lobbyType = ELobbyType.k_ELobbyTypePrivate;
 			}
 			SteamAPICall_t call = SteamMatchmaking.CreateLobby(
-				SWSessionType[(int) type],
+				lobbyType,
 				maxGamers
 			);
 			if (call.m_SteamAPICall != 0)
