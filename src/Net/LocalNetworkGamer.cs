@@ -83,21 +83,21 @@ namespace Microsoft.Xna.Framework.Net
 				return 0;
 			}
 
-			uint len = 0;
 			NetworkSession.NetworkEvent packet = packetQueue.Dequeue();
-			Array.Copy(packet.Packet, 0, data, 0, offset);
+			int len = Math.Min(packet.Packet.Length, data.Length);
+			Array.Copy(packet.Packet, 0, data, offset, len);
 
 			foreach (NetworkGamer gamer in Session.AllGamers)
 			{
 				if (gamer.steamID == packet.Gamer.steamID)
 				{
 					sender = gamer;
-					return (int) len;
+					return len;
 				}
 			}
 
 			// We should never get here!
-			return (int) len;
+			return len;
 		}
 
 		public int ReceiveData(PacketReader data, out NetworkGamer sender)
