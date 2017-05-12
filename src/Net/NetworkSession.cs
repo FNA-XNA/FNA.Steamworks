@@ -1624,7 +1624,7 @@ namespace Microsoft.Xna.Framework.Net
 			if (maxPrivateGamers > 0)
 			{
 				// FIXME: Better way to determine private lobby... -flibit
-				lobbyType = ELobbyType.k_ELobbyTypePrivate;
+				lobbyType = ELobbyType.k_ELobbyTypeFriendsOnly;
 			}
 			SteamAPICall_t call = SteamMatchmaking.CreateLobby(
 				lobbyType,
