@@ -77,6 +77,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			this.leaderboard = leaderboard;
 
 			RankingEXT = ranking;
+
+			Columns = new PropertyDictionary(
+				new System.Collections.Generic.Dictionary<string, object>()
+			);
 		}
 
 		#endregion
