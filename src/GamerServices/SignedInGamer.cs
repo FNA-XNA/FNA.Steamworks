@@ -169,7 +169,8 @@ namespace Microsoft.Xna.Framework.GamerServices
 		) {
 			if (statStoreAction != null)
 			{
-				throw new InvalidOperationException();
+				// FIXME: Pray that we don't get overlap -flibit
+				// throw new InvalidOperationException();
 			}
 			SteamUserStats.SetAchievement(achievementKey);
 			statStoreAction = new GamerAction(state, callback);
