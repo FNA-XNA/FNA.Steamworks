@@ -187,7 +187,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			IAsyncResult result = BeginGetAchievements(null, null);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					statReceiveAction.IsCompleted = true;
+				}
 			}
 			return EndGetAchievements(result);
 		}

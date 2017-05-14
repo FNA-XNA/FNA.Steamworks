@@ -232,7 +232,10 @@ namespace Microsoft.Xna.Framework.Net
 				);
 				while (string.IsNullOrEmpty(result))
 				{
-					GamerServicesDispatcher.Update();
+					if (!GamerServicesDispatcher.UpdateAsync())
+					{
+						return NetworkSessionState.Ended;
+					}
 					result = SteamMatchmaking.GetLobbyData(
 						lobby,
 						"SessionState"
@@ -1009,7 +1012,10 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndCreate(result);
 		}
@@ -1032,7 +1038,10 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndCreate(result);
 		}
@@ -1055,7 +1064,10 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndCreate(result);
 		}
@@ -1198,7 +1210,10 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndFind(result);
 		}
@@ -1217,7 +1232,10 @@ namespace Microsoft.Xna.Framework.Net
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndFind(result);
 		}
@@ -1348,7 +1366,10 @@ namespace Microsoft.Xna.Framework.Net
 			IAsyncResult result = BeginJoin(availableSession, null, null);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndJoin(result);
 		}
@@ -1448,7 +1469,10 @@ namespace Microsoft.Xna.Framework.Net
 			IAsyncResult result = BeginJoinInvited(maxLocalGamers, null, null);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndJoinInvited(result);
 		}
@@ -1459,7 +1483,10 @@ namespace Microsoft.Xna.Framework.Net
 			IAsyncResult result = BeginJoinInvited(localGamers, null, null);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					activeAction.IsCompleted = true;
+				}
 			}
 			return EndJoinInvited(result);
 		}

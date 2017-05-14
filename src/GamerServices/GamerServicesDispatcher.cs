@@ -59,8 +59,20 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 		public static void Initialize(IServiceProvider serviceProvider)
 		{
-			bool success = SteamAPI.Init();
-			AppDomain.CurrentDomain.ProcessExit += (o, e) => SteamAPI.Shutdown();
+			IsInitialized = SteamAPI.Init();
+
+			if (!IsInitialized)
+			{
+				throw new GamerServicesNotAvailableException(
+					"Steam is not running, please restart Steam!"
+				);
+			}
+
+			AppDomain.CurrentDomain.ProcessExit += (o, e) =>
+			{
+				SteamAPI.Shutdown();
+				IsInitialized = false;
+			};
 
 			overlayActivated = Callback<GameOverlayActivated_t>.Create(Guide.OnOverlayActivated);
 			textInputDismissed = Callback<GamepadTextInputDismissed_t>.Create(Guide.OnTextInputDismissed);
@@ -72,28 +84,28 @@ namespace Microsoft.Xna.Framework.GamerServices
 			startGamers.Add(new SignedInGamer(
 				SteamUser.GetSteamID(),
 				SteamFriends.GetPersonaName(),
-				success
+				IsInitialized
 			));
 
 			// FIXME: This is stupid -flibit
 			startGamers.Add(new SignedInGamer(
 				SteamUser.GetSteamID(),
 				SteamFriends.GetPersonaName() + " (1)",
-				success,
+				IsInitialized,
 				true,
 				PlayerIndex.Two
 			));
 			startGamers.Add(new SignedInGamer(
 				SteamUser.GetSteamID(),
 				SteamFriends.GetPersonaName() + " (2)",
-				success,
+				IsInitialized,
 				true,
 				PlayerIndex.Three
 			));
 			startGamers.Add(new SignedInGamer(
 				SteamUser.GetSteamID(),
 				SteamFriends.GetPersonaName() + " (3)",
-				success,
+				IsInitialized,
 				true,
 				PlayerIndex.Four
 			));
@@ -113,6 +125,16 @@ namespace Microsoft.Xna.Framework.GamerServices
 			}
 
 			// TODO: Guest hotplugging!
+		}
+
+		internal static bool UpdateAsync()
+		{
+			// If a thread's calling this after we quit, tell it to panic!
+			if (IsInitialized)
+			{
+				Update();
+			}
+			return IsInitialized;
 		}
 
 		#endregion

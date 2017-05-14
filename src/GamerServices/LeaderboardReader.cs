@@ -236,7 +236,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			IAsyncResult result = BeginPageDown(null, null);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					readAction.IsCompleted = true;
+				}
 			}
 			EndPageDown(result);
 		}
@@ -309,7 +312,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			IAsyncResult result = BeginPageUp(null, null);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					readAction.IsCompleted = true;
+				}
 			}
 			EndPageUp(result);
 		}
@@ -452,7 +458,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					readAction.IsCompleted = true;
+				}
 			}
 			return EndRead(result);
 		}
@@ -471,7 +480,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					readAction.IsCompleted = true;
+				}
 			}
 			return EndRead(result);
 		}
@@ -492,7 +504,10 @@ namespace Microsoft.Xna.Framework.GamerServices
 			);
 			while (!result.IsCompleted)
 			{
-				GamerServicesDispatcher.Update();
+				if (!GamerServicesDispatcher.UpdateAsync())
+				{
+					readAction.IsCompleted = true;
+				}
 			}
 			return EndRead(result);
 		}
