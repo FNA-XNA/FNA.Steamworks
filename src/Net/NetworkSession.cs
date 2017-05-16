@@ -286,7 +286,8 @@ namespace Microsoft.Xna.Framework.Net
 
 		private int maxLocalGamers;
 
-		private List<byte> idDatabase;
+		private Dictionary<uint, byte> gamerIdCache;
+		private byte gamerIdMarker;
 
 		private Queue<NetworkEvent> networkEvents;
 
@@ -461,7 +462,8 @@ namespace Microsoft.Xna.Framework.Net
 
 			// Create Gamer lists
 
-			idDatabase = new List<byte>();
+			gamerIdCache = new Dictionary<uint, byte>();
+			gamerIdMarker = 0;
 
 			List<LocalNetworkGamer> locals = new List<LocalNetworkGamer>();
 			if (localGamers == null)
@@ -551,6 +553,8 @@ namespace Microsoft.Xna.Framework.Net
 					"OpenPublicSlots",
 					MaxSupportedGamers.ToString() // FIXME
 				);
+
+				AddGamerId(Host.steamID);
 			}
 
 			// Event hookups
@@ -842,22 +846,49 @@ namespace Microsoft.Xna.Framework.Net
 
 		internal byte GetNetworkId(CSteamID id)
 		{
-			// Fucking API, why a byte, why -flibit
-			byte result = (byte) (id.GetAccountID().m_AccountID & 0xFF);
+			uint account = id.GetAccountID().m_AccountID;
 
-			// FIXME: Two gamers with 1 ID join at once, WHO WILL WIN?! -flibit
-			while (idDatabase.Contains(result))
+			// A client won't have this right away, pull it from host
+			if (!gamerIdCache.ContainsKey(account))
 			{
-				result += 1;
+				string result = SteamMatchmaking.GetLobbyData(
+					lobby,
+					"Id_" + account.ToString()
+				);
+				while (string.IsNullOrEmpty(result))
+				{
+					if (!GamerServicesDispatcher.UpdateAsync())
+					{
+						return 0;
+					}
+					result = SteamMatchmaking.GetLobbyData(
+						lobby,
+						"Id_" + account.ToString()
+					);
+				}
+				gamerIdCache.Add(account, byte.Parse(result));
 			}
-			idDatabase.Add(result);
 
-			return result;
+			return gamerIdCache[account];
 		}
 
 		#endregion
 
 		#region Private Methods
+
+		private void AddGamerId(CSteamID id)
+		{
+			uint account = id.GetAccountID().m_AccountID;
+			if (!gamerIdCache.ContainsKey(account))
+			{
+				gamerIdCache.Add(account, gamerIdMarker++);
+				SteamMatchmaking.SetLobbyData(
+					lobby,
+					"Id_" + account.ToString(),
+					gamerIdCache[account].ToString()
+				);
+			}
+		}
 
 		private void OnLobbyUpdated(LobbyChatUpdate_t update)
 		{
@@ -896,6 +927,11 @@ namespace Microsoft.Xna.Framework.Net
 				}
 				AllGamers.collection.Add(gamer);
 
+				if (IsHost)
+				{
+					AddGamerId(gamer.steamID);
+				}
+
 				NetworkEvent evt = new NetworkEvent()
 				{
 					Type = NetworkEventType.GamerJoin,
@@ -919,7 +955,6 @@ namespace Microsoft.Xna.Framework.Net
 					return; // ???
 				}
 
-				idDatabase.Remove(gamer.Id);
 				if (gamer.IsLocal)
 				{
 					LocalGamers.collection.Remove(gamer as LocalNetworkGamer);

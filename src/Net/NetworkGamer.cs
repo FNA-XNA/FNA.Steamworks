@@ -35,8 +35,10 @@ namespace Microsoft.Xna.Framework.Net
 
 		public byte Id
 		{
-			get;
-			private set;
+			get
+			{
+				return Session.GetNetworkId(steamID);
+			}
 		}
 
 		public bool IsGuest
@@ -119,7 +121,6 @@ namespace Microsoft.Xna.Framework.Net
 			Steamworks.SteamFriends.GetPlayerNickname(id)
 		) {
 			Session = session;
-			Id = Session.GetNetworkId(steamID);
 
 			// TODO: Everything below
 			HasLeftSession = false;
