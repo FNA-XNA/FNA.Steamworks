@@ -1003,7 +1003,7 @@ namespace Microsoft.Xna.Framework.Net
 
 				if (gamer == Host)
 				{
-					if (!AllowHostMigration)
+					if (AllowHostMigration)
 					{
 						CSteamID newHost = SteamMatchmaking.GetLobbyOwner(lobby);
 						foreach (NetworkGamer g in AllGamers)
