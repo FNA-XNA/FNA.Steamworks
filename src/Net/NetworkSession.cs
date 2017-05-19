@@ -750,9 +750,12 @@ namespace Microsoft.Xna.Framework.Net
 						break;
 					}
 				}
-				foreach (LocalNetworkGamer gamer in LocalGamers)
+				if (evt.Gamer != null) // FIXME: WHAT
 				{
-					gamer.packetQueue.Enqueue(evt);
+					foreach (LocalNetworkGamer gamer in LocalGamers)
+					{
+						gamer.packetQueue.Enqueue(evt);
+					}
 				}
 			}
 		}
