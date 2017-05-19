@@ -771,7 +771,7 @@ namespace Microsoft.Xna.Framework.Net
 				SteamMatchmaking.SetLobbyData(
 					lobby,
 					"CurrentGamerCount",
-					AllGamers.Count
+					AllGamers.Count.ToString()
 				);
 			}
 		}
@@ -949,7 +949,7 @@ namespace Microsoft.Xna.Framework.Net
 					SteamMatchmaking.SetLobbyData(
 						lobby,
 						"CurrentGamerCount",
-						AllGamers.Count
+						AllGamers.Count.ToString()
 					);
 				}
 
@@ -990,7 +990,7 @@ namespace Microsoft.Xna.Framework.Net
 					SteamMatchmaking.SetLobbyData(
 						lobby,
 						"CurrentGamerCount",
-						AllGamers.Count
+						AllGamers.Count.ToString()
 					);
 				}
 
