@@ -679,6 +679,14 @@ namespace Microsoft.Xna.Framework.Net
 
 					// FIXME: Is the timing on this accurate? -flibit
 					Host = evt.Gamer;
+					if (IsHost)
+					{
+						SteamMatchmaking.SetLobbyData(
+							lobby,
+							"HostGamertag",
+							Host.Gamertag
+						);
+					}
 				}
 				else if (evt.Type == NetworkEventType.StateChange)
 				{
@@ -758,6 +766,14 @@ namespace Microsoft.Xna.Framework.Net
 			LocalNetworkGamer adding = new LocalNetworkGamer(gamer, this);
 			LocalGamers.collection.Add(adding);
 			AllGamers.collection.Add(adding);
+			if (IsHost)
+			{
+				SteamMatchmaking.SetLobbyData(
+					lobby,
+					"CurrentGamerCount",
+					AllGamers.Count
+				);
+			}
 		}
 
 		public NetworkGamer FindGamerById(byte gameId)
@@ -930,6 +946,11 @@ namespace Microsoft.Xna.Framework.Net
 				if (IsHost)
 				{
 					AddGamerId(gamer.steamID);
+					SteamMatchmaking.SetLobbyData(
+						lobby,
+						"CurrentGamerCount",
+						AllGamers.Count
+					);
 				}
 
 				NetworkEvent evt = new NetworkEvent()
@@ -964,6 +985,14 @@ namespace Microsoft.Xna.Framework.Net
 					RemoteGamers.collection.Remove(gamer);
 				}
 				AllGamers.collection.Remove(gamer);
+				if (IsHost)
+				{
+					SteamMatchmaking.SetLobbyData(
+						lobby,
+						"CurrentGamerCount",
+						AllGamers.Count
+					);
+				}
 
 				NetworkEvent evt = new NetworkEvent()
 				{
@@ -974,19 +1003,32 @@ namespace Microsoft.Xna.Framework.Net
 
 				if (gamer == Host)
 				{
-					CSteamID newHost = SteamMatchmaking.GetLobbyOwner(lobby);
-					foreach (NetworkGamer g in AllGamers)
+					if (!AllowHostMigration)
 					{
-						if (g.steamID == newHost)
+						CSteamID newHost = SteamMatchmaking.GetLobbyOwner(lobby);
+						foreach (NetworkGamer g in AllGamers)
 						{
-							evt = new NetworkEvent()
+							if (g.steamID == newHost)
 							{
-								Type = NetworkEventType.HostChange,
-								Gamer = g
-							};
-							SendNetworkEvent(evt);
-							break;
+								evt = new NetworkEvent()
+								{
+									Type = NetworkEventType.HostChange,
+									Gamer = g
+								};
+								SendNetworkEvent(evt);
+								break;
+							}
 						}
+					}
+					else
+					{
+						evt = new NetworkEvent()
+						{
+							Type = NetworkEventType.StateChange,
+							State = NetworkSessionState.Ended,
+							Reason = NetworkSessionEndReason.HostEndedSession
+						};
+						SendNetworkEvent(evt);
 					}
 				}
 			}
