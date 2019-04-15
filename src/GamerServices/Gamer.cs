@@ -50,10 +50,23 @@ namespace Microsoft.Xna.Framework.GamerServices
 			set;
 		}
 
+		private static SignedInGamerCollection INTERNAL_signedInGamers;
 		public static SignedInGamerCollection SignedInGamers
 		{
-			get;
-			internal set;
+			get
+			{
+				if (INTERNAL_signedInGamers == null)
+				{
+					INTERNAL_signedInGamers = new SignedInGamerCollection(
+						new System.Collections.Generic.List<SignedInGamer>()
+					);
+				}
+				return INTERNAL_signedInGamers;
+			}
+			internal set
+			{
+				INTERNAL_signedInGamers = value;
+			}
 		}
 
 		#endregion
